@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm run *)",
+      "Bash(pnpm test)",
+      "Bash(pnpm install)",
+      "Bash(findstr *)"
+    ]
+  },
+  "$version": 3
+}

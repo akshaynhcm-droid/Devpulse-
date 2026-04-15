@@ -1,0 +1,90 @@
+version: "3.8"
+
+services:
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-changeme_in_production}
+      MYSQL_DATABASE: devpulse_db
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-p${MYSQL_ROOT_PASSWORD:-changeme_in_production}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - devpulse-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    command: node dist/index.js
+    ports:
+      - "3000:3000"
+    environment:
+      # ── Server ──────────────────────────────────────────────────
+      NODE_ENV: production
+      PORT: 3000
+      APP_URL: ${APP_URL}
+
+      # ── Database ─────────────────────────────────────────────────
+      DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD:-changeme_in_production}@db:3306/devpulse_db
+
+      # ── Auth (JWT) ───────────────────────────────────────────────
+      JWT_SECRET: ${JWT_SECRET}
+
+      # ── Manus OAuth (optional) ───────────────────────────────────
+      VITE_APP_ID: ${VITE_APP_ID:-}
+      OAUTH_SERVER_URL: ${OAUTH_SERVER_URL:-https://auth.manus.app}
+      OWNER_OPEN_ID: ${OWNER_OPEN_ID:-}
+
+      # ── Google OAuth ─────────────────────────────────────────────
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+
+      # ── MiniMax M2.7 (Primary LLM Brain) ─────────────────────────
+      MINIMAX_API_KEY: ${MINIMAX_API_KEY:-}
+      MINIMAX_API_URL: ${MINIMAX_API_URL:-https://api.minimax.io/v1}
+
+      # ── Forge API (Fallback LLM) ──────────────────────────────────
+      BUILT_IN_FORGE_API_URL: ${BUILT_IN_FORGE_API_URL:-https://api.manus.app/forge}
+      BUILT_IN_FORGE_API_KEY: ${BUILT_IN_FORGE_API_KEY:-}
+
+      # ── Email (SMTP) ─────────────────────────────────────────────
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-noreply@devpulse.app}
+
+      # ── Notifications ─────────────────────────────────────────────
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+
+      # ── Error Monitoring ─────────────────────────────────────────
+      SENTRY_DSN: ${SENTRY_DSN:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - devpulse-network
+
+volumes:
+  mysql_data:
+
+networks:
+  devpulse-network:
+    driver: bridge

@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+websockets
+sqlalchemy
+requests
+python-multipart
+pydantic
+jose
+passlib[bcrypt]
+python-jose[cryptography]
+psycopg2-binary
+numpy
+pytest
+slowapi
+stripe
+sentry-sdk
+httpx
