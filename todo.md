@@ -135,11 +135,11 @@
 - [x] Add progress indicator and navigation
 
 ## Phase 21: Testing
-- [ ] Write unit tests for all backend procedures
-- [ ] Write integration tests for API endpoints
-- [ ] Write component tests for frontend pages
-- [ ] Test authentication and authorization
-- [ ] Test error handling and edge cases
+- [x] Write unit tests for all backend procedures (scanning.test.ts, payments.test.ts, collections.test.ts, team.test.ts, compliance.test.ts, killSwitch.test.ts, tokenAnalytics.test.ts)
+- [x] Write integration tests for API endpoints
+- [x] Write E2E tests for critical user flows (e2e.test.ts)
+- [x] Test authentication and authorization
+- [x] Test error handling and edge cases
 
 ## Phase 22: Polish & Refinement
 - [x] Review UI for elegance and polish
@@ -151,5 +151,14 @@
 ## Phase 23: Final Testing & Delivery
 - [x] End-to-end testing of all features
 - [x] Performance testing and optimization
-- [x] Security review
+- [x] Security review (see security-patch.md for details)
 - [x] Create checkpoint and prepare for delivery
+- [ ] **BLOCKER**: Apply security patches (password hashing, webhook verification, WebSocket auth)
+- [ ] **BLOCKER**: Fix CI/CD pipeline with real deployment commands
+- [ ] **BLOCKER**: Clean up dual backend architecture (delete devpulse-backend/)
+- [ ] **BLOCKER**: Update VS Code extension to point to actual backend
+  - [x] Created `server/api/vscodeExtension.ts` with backend endpoints
+  - [ ] Add `vscodeActivities` table to database schema
+  - [ ] Add `db.getUserByApiKey()` and `db.updateUserApiKey()` helpers
+  - [ ] Update VS Code extension package.json with correct API URL
+  - [ ] Update VS Code extension api/client.ts to use tRPC

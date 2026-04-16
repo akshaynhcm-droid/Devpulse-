@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 from database import get_all_users, get_total_cost, get_llm_calls, get_user_by_id, update_user_plan, User as DBUser
 from auth import get_current_user as get_current_user_auth
+from websocket_manager import manager
 
 router = APIRouter()
 
@@ -83,5 +84,5 @@ def system_health(current_user: DBUser = Depends(get_current_user_auth)):
     return SystemHealth(
         status="healthy",
         database="connected",
-        websocket_connections=0
+        websocket_connections=manager.connection_count
     )

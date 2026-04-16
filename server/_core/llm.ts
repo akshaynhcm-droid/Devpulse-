@@ -330,7 +330,7 @@ export async function invokeLLM(params: InvokeParams & { userId?: number }): Pro
   };
 
   // MiniMax M2.7 is a reasoning model — enable reasoning with a token budget
-  if (model === MINIMAX_MODEL) {
+  if (model === ENV.minimaxModel) {
     // MiniMax supports reasoning natively without a special parameter
     // but we can set temperature to 1 for best reasoning quality
     payload.temperature = 1;
@@ -378,7 +378,7 @@ export async function invokeLLM(params: InvokeParams & { userId?: number }): Pro
   const result = (await response.json()) as InvokeResult;
 
   // Strip <think> tags from MiniMax reasoning output in text content
-  if (model === MINIMAX_MODEL) {
+  if (model === ENV.minimaxModel) {
     for (const choice of result.choices) {
       if (typeof choice.message.content === "string") {
         choice.message.content = stripThinkingTags(choice.message.content);

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function TermsOfService() {
   return (
     <div className="min-h-screen bg-slate-900 text-white p-8">
@@ -68,7 +70,7 @@ export default function TermsOfService() {
             <p>
               Subscription fees are billed in advance and are non-refundable.
               You agree to pay all charges at the prices in effect when charges
-              are incurred. All payments are processed through Stripe.
+              are incurred. All payments are processed through Razorpay.
             </p>
           </section>
 
@@ -93,9 +95,9 @@ export default function TermsOfService() {
         </div>
 
         <div className="mt-12 pt-8 border-t border-slate-700">
-          <a href="/" className="text-blue-400 hover:text-blue-300">
+          <Link href="/" className="text-blue-400 hover:text-blue-300">
             &larr; Back to Home
-          </a>
+          </Link>
         </div>
       </div>
     </div>

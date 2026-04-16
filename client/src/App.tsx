@@ -6,6 +6,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { PageErrorBoundary } from "./components/PageErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
+import Invite from "./pages/Invite";
 import DashboardLayout from "./components/DashboardLayout";
 import Dashboard from "./pages/Dashboard";
 import Collections from "./pages/Collections";
@@ -16,13 +17,16 @@ import KillSwitch from "./pages/KillSwitch";
 import Compliance from "./pages/Compliance";
 import Team from "./pages/Team";
 import Onboarding from "./pages/Onboarding";
+import Pricing from "./pages/Pricing";
+import CollectionDetail from "./pages/CollectionDetail";
 
 function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path={"/invite/:token"} component={Invite} />
       <Route path={"/onboarding"} component={Onboarding} />
-      
+
       {/* Dashboard Routes — each wrapped in its own error boundary */}
       <Route path={"/dashboard"}>
         {() => (
@@ -39,6 +43,16 @@ function Router() {
           <DashboardLayout>
             <PageErrorBoundary pageName="Collections">
               <Collections />
+            </PageErrorBoundary>
+          </DashboardLayout>
+        )}
+      </Route>
+
+      <Route path={"/collections/:id"}>
+        {() => (
+          <DashboardLayout>
+            <PageErrorBoundary pageName="Collection Detail">
+              <CollectionDetail />
             </PageErrorBoundary>
           </DashboardLayout>
         )}
@@ -99,6 +113,16 @@ function Router() {
           <DashboardLayout>
             <PageErrorBoundary pageName="Team Management">
               <Team />
+            </PageErrorBoundary>
+          </DashboardLayout>
+        )}
+      </Route>
+
+      <Route path={"/pricing"}>
+        {() => (
+          <DashboardLayout>
+            <PageErrorBoundary pageName="Pricing">
+              <Pricing />
             </PageErrorBoundary>
           </DashboardLayout>
         )}

@@ -19,6 +19,7 @@ import uvicorn
 import datetime
 import time
 import logging
+import json
 
 from database import init_db, log_llm_call, log_security_event, get_total_cost, get_recent_costs, get_security_events, get_llm_calls
 from websocket_manager import manager
@@ -28,7 +29,7 @@ from services.github_integration import handle_github_push, handle_github_pull_r
 from services.payments import create_checkout_session, handle_stripe_webhook
 from integrations.github_app import handle_github_webhook
 from integrations.slack_bot import send_alert, send_cost_alert, send_security_alert
-from routers import auth, admin
+from routers import auth, admin, collections, scanning, shadow_apis, token_analytics, kill_switch, compliance, team, onboarding, dashboard
 
 logging.basicConfig(
     level=logging.INFO,
@@ -63,6 +64,15 @@ app.add_middleware(
 
 app.include_router(auth.router, tags=["Authentication"], prefix="/api/auth")
 app.include_router(admin.router, tags=["Admin"], prefix="/api/admin")
+app.include_router(collections.router, tags=["Collections"], prefix="/api/collections")
+app.include_router(scanning.router, tags=["Scanning"], prefix="/api/scanning")
+app.include_router(shadow_apis.router, tags=["Shadow APIs"], prefix="/api/shadow-apis")
+app.include_router(token_analytics.router, tags=["Token Analytics"], prefix="/api/token-analytics")
+app.include_router(kill_switch.router, tags=["Kill Switch"], prefix="/api/kill-switch")
+app.include_router(compliance.router, tags=["Compliance"], prefix="/api/compliance")
+app.include_router(team.router, tags=["Team"], prefix="/api/team")
+app.include_router(onboarding.router, tags=["Onboarding"], prefix="/api/onboarding")
+app.include_router(dashboard.router, tags=["Dashboard"], prefix="/api/dashboard")
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -106,7 +116,7 @@ async def agent_interact(req: AgentInteractRequest):
             "High",
             f"Agent {req.agent_id} cost spike: ${cost:.4f}"
         )
-        send_cost_alert(req.agent_id, cost, 1.0)
+        await send_cost_alert(req.agent_id, cost, 1.0)
     
     total_cost = get_total_cost()
     
@@ -145,7 +155,7 @@ async def security_scan(req: ScanRequest):
     
     for finding in findings:
         if finding.get("type") == "hardcoded_secret":
-            send_security_alert("hardcoded_secret", f"Found hardcoded secret in code: {finding.get('key')}")
+            await send_security_alert("hardcoded_secret", f"Found hardcoded secret in code: {finding.get('key')}")
     
     return {"findings": findings, "count": len(findings)}
 
@@ -179,29 +189,36 @@ async def create_checkout(req: CheckoutRequest):
 
 @app.post("/api/alerts/test")
 async def test_alert():
-    send_alert("Test Alert", "This is a test alert from DevPulse", color="#3498db")
+    await send_alert("Test Alert", "This is a test alert from DevPulse", color="#3498db")
     return {"status": "sent"}
 
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await manager.connect(websocket)
+async def websocket_endpoint(websocket: WebSocket, token: Optional[str] = None):
+    # Optional auth: if token provided via query param, validate it
+    user_id = None
+    if token:
+        from auth import decode_token
+        payload = decode_token(token)
+        if payload:
+            user_id = payload.get("sub")
+
+    await manager.connect(websocket, user_id=user_id)
     try:
         await websocket.send_json({
             "type": "init",
             "total_cost": get_total_cost(),
-            "timestamp": datetime.datetime.now().isoformat()
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat()
         })
         while True:
             data = await websocket.receive_text()
             try:
-                import json
                 msg = json.loads(data) if data else {}
                 if msg.get("type") == "ping":
                     await websocket.send_json({"type": "pong"})
-            except:
+            except Exception:
                 pass
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
+        manager.disconnect(websocket, user_id=user_id)
 
 @app.get("/")
 async def root():

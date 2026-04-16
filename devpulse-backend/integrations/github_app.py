@@ -13,8 +13,8 @@ GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
 
 def verify_github_signature(payload: bytes, signature: str) -> bool:
     if not GITHUB_WEBHOOK_SECRET:
-        return True
-    
+        raise HTTPException(status_code=500, detail="GitHub webhook secret not configured — cannot verify signatures")
+
     hash_object = hmac.new(GITHUB_WEBHOOK_SECRET.encode(), msg=payload, digestmod=hashlib.sha256)
     expected_signature = "sha256=" + hash_object.hexdigest()
     return hmac.compare_digest(expected_signature, signature)
@@ -111,8 +111,61 @@ async def handle_push_event(data: dict) -> Optional[Dict]:
     commits = data.get("commits", [])
     branch = data.get("ref", "").replace("refs/heads/", "")
     
+    if not GITHUB_TOKEN:
+        print("GITHUB_TOKEN not set - skipping push scan")
+        return {
+            "repo": repo_full_name,
+            "branch": branch,
+            "commits_count": len(commits),
+            "scan_status": "skipped"
+        }
+    
+    # Scan all modified files in the push
+    detector = ShadowAPIDetector(known_apis=["login", "logout", "users", "auth", "health"])
+    findings: List[Dict] = []
+    
+    async with httpx.AsyncClient(timeout=30.0) as headers:
+        for commit in commits[:10]:  # Limit to 10 most recent commits
+            try:
+                # Get files changed in this commit
+                repo_name = data.get("repository", {}).get("name", "")
+                commit_sha = commit.get("id", "")
+                files_url = f"https://api.github.com/repos/{repo_full_name}/commits/{commit_sha}"
+                auth_headers = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
+                
+                files_response = await headers.get(files_url, headers=auth_headers)
+                commit_data = files_response.json()
+                files = commit_data.get("files", [])
+                
+                for file in files:
+                    if file.get("status") == "removed":
+                        continue
+                    
+                    try:
+                        raw_url = file.get("raw_url", "")
+                        content_response = await headers.get(raw_url)
+                        code_content = content_response.text
+                        issues = detector.scan_code(code_content)
+                        
+                        for issue in issues:
+                            findings.append({
+                                "filename": file.get("filename", "unknown"),
+                                "commit": commit_sha[:7],
+                                "type": issue.get("type", "unknown"),
+                                "reason": issue.get("reason", ""),
+                                "url": issue.get("url", "")
+                            })
+                    except Exception:
+                        continue
+            except Exception as e:
+                print(f"Failed to scan commit: {e}")
+                continue
+    
     return {
         "repo": repo_full_name,
         "branch": branch,
-        "commits_count": len(commits)
+        "commits_count": len(commits),
+        "findings_count": len(findings),
+        "scan_status": "completed",
+        "findings": findings[:20]  # Limit to 20 findings
     }

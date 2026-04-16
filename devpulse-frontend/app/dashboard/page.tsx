@@ -1,6 +1,16 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import RiskChart from "../../components/RiskChart";
+
+function getWsUrl(): string {
+  if (process.env.NEXT_PUBLIC_WS_URL) return process.env.NEXT_PUBLIC_WS_URL;
+  if (typeof window === "undefined") return "ws://localhost:8000/ws";
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${protocol}//${window.location.host}/ws`;
+}
+
+const WS_URL = getWsUrl();
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 interface Message {
   type: string;
@@ -25,10 +35,10 @@ export default function Dashboard() {
   const [totalCost, setTotalCost] = useState(0);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [anomalyActive, setAnomalyActive] = useState(false);
+  const reconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/ws";
-    const ws = new WebSocket(wsUrl);
+  const connect = useCallback(() => {
+    const ws = new WebSocket(WS_URL);
 
     ws.onopen = () => {
       console.log("Connected to DevPulse Core");
@@ -53,6 +63,8 @@ export default function Dashboard() {
           if (msg.anomaly) setAnomalyActive(true);
         } else if (msg.type === "init") {
           setTotalCost(msg.total_cost || 0);
+        } else if (msg.type === "pong") {
+          // heartbeat response
         }
       } catch (e) {
         console.error("Failed to parse message", e);
@@ -66,17 +78,34 @@ export default function Dashboard() {
     ws.onclose = () => {
       setConnected(false);
       setSocket(null);
+      // Auto-reconnect after 3 seconds
+      reconnectRef.current = setTimeout(() => {
+        connect();
+      }, 3000);
     };
 
+    return ws;
+  }, []);
+
+  useEffect(() => {
+    const ws = connect();
+    // Heartbeat every 30s
+    const heartbeat = setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "ping" }));
+      }
+    }, 30000);
+
     return () => {
+      clearInterval(heartbeat);
+      if (reconnectRef.current) clearTimeout(reconnectRef.current);
       ws.close();
     };
-  }, []);
+  }, [connect]);
 
   const triggerTestCall = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const response = await fetch(`${apiUrl}/api/agent/interact`, {
+      const response = await fetch(`${API_BASE}/agent/interact`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -164,7 +193,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        <RiskChart />
+        <RiskChart data={logs.map(l => l.cost)} />
 
         <div className="mt-8 bg-gray-800 rounded-lg p-6 border border-gray-700">
           <div className="flex items-center justify-between mb-4">

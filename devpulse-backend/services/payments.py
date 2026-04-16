@@ -67,18 +67,21 @@ def create_checkout_session(
 def handle_stripe_webhook(payload: bytes, sig_header: str) -> dict:
     """
     Handle Stripe webhook events.
+    Signature verification is ALWAYS required — no bypass allowed.
     """
-    if not stripe.api_key or not STRIPE_WEBHOOK_SECRET:
-        raise HTTPException(status_code=500, detail="Stripe webhook not configured - cannot verify signature")
-    else:
-        try:
-            event = stripe.Webhook.construct_event(
-                payload, sig_header, STRIPE_WEBHOOK_SECRET
-            )
-        except ValueError as e:
-            raise HTTPException(status_code=400, detail="Invalid payload")
-        except stripe.error.SignatureVerificationError as e:
-            raise HTTPException(status_code=400, detail="Invalid signature")
+    if not stripe.api_key:
+        raise HTTPException(status_code=500, detail="Stripe API key not configured")
+    if not STRIPE_WEBHOOK_SECRET:
+        raise HTTPException(status_code=500, detail="Stripe webhook secret not configured — cannot verify signatures")
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid payload")
+    except stripe.error.SignatureVerificationError:
+        raise HTTPException(status_code=400, detail="Invalid signature")
 
     if event["type"] == "checkout.session.completed":
         session = event["data"]["object"]
@@ -88,9 +91,9 @@ def handle_stripe_webhook(payload: bytes, sig_header: str) -> dict:
         target_email = user_email or customer_email
         
         if target_email:
+            from database import update_user_plan
             print(f"Payment completed for user: {target_email}")
-            # In production: Update user role in database
-            # db.query(User).filter(User.email == target_email).update({"plan": "pro"})
+            update_user_plan(target_email, "pro")
         
         return {
             "status": "success",

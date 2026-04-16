@@ -5,7 +5,7 @@ import os
 from typing import Optional
 from pydantic import BaseModel
 
-GITHUB_WEBHOOK_SECRET = os.getenv("GITHUB_WEBHOOK_SECRET", "your_webhook_secret_here")
+GITHUB_WEBHOOK_SECRET = os.getenv("GITHUB_WEBHOOK_SECRET", "")
 
 class GitHubPushPayload(BaseModel):
     ref: Optional[str] = None
@@ -19,7 +19,10 @@ class GitHubPushPayload(BaseModel):
 async def handle_github_push(request: Request):
     body = await request.body()
     signature = request.headers.get("X-Hub-Signature-256")
-    
+
+    if not GITHUB_WEBHOOK_SECRET:
+        raise HTTPException(status_code=500, detail="GitHub webhook secret not configured")
+
     if not signature:
         raise HTTPException(status_code=400, detail="No signature provided")
 
@@ -55,7 +58,10 @@ async def handle_github_push(request: Request):
 async def handle_github_pull_request(request: Request):
     body = await request.body()
     signature = request.headers.get("X-Hub-Signature-256")
-    
+
+    if not GITHUB_WEBHOOK_SECRET:
+        raise HTTPException(status_code=500, detail="GitHub webhook secret not configured")
+
     if not signature:
         raise HTTPException(status_code=400, detail="No signature provided")
 
@@ -83,7 +89,7 @@ async def handle_github_pull_request(request: Request):
         "pr_number": pr_number,
         "repo": repo_name,
         "pr_title": pr_title,
-        "action": "pr_scan_initiated"
+        "scan_action": "pr_scan_initiated"
     }
 
 def verify_webhook_signature(payload: bytes, signature: str, secret: str) -> bool:

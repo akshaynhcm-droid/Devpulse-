@@ -23,6 +23,7 @@ export async function setupVite(app: Express, server: Server) {
   app.use(vite.middlewares);
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
+    const nonce = (res as any).locals?.cspNonce || "";
 
     try {
       const clientTemplate = path.resolve(
@@ -38,6 +39,8 @@ export async function setupVite(app: Express, server: Server) {
         `src="/src/main.tsx"`,
         `src="/src/main.tsx?v=${nanoid()}"`
       );
+      // Inject CSP nonce into script tags
+      template = template.replace(/<script/g, `<script nonce="${nonce}"`);
       const page = await vite.transformIndexHtml(url, template);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {
@@ -61,7 +64,22 @@ export function serveStatic(app: Express) {
   app.use(express.static(distPath));
 
   // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+  app.use("*", (req, res) => {
+    const indexPath = path.resolve(distPath, "index.html");
+    const nonce = (res as any).locals?.cspNonce || "";
+
+    // Read and inject CSP nonce into script tags
+    fs.readFile(indexPath, "utf-8", (err, data) => {
+      if (err) {
+        return res.sendFile(indexPath);
+      }
+      // Add nonce to script tags
+      const htmlWithNonce = data.replace(
+        /<script/g,
+        `<script nonce="${nonce}"`
+      );
+      res.setHeader("Content-Type", "text/html");
+      res.send(htmlWithNonce);
+    });
   });
 }

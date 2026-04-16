@@ -10,9 +10,12 @@
 - **Real-time Cost Monitoring** - Track LLM spending across all agents with WebSocket updates
 - **Anomaly Detection** - Automatically detect cost spikes and unusual usage patterns
 - **Shadow API Detection** - Find undocumented endpoints in your codebase
+- **OWASP Security Scanning** - Automated security analysis against OWASP Top 10
 - **Cost Forecasting** - Predict your AI spend before the invoice arrives
 - **GitHub Integration** - Webhook-based security scanning on push/PR events
-- **VS Code Extension** - Inline security warnings directly in your editor
+- **Kill Switch** - Instantly halt AI agent operations during emergencies
+- **Compliance Reporting** - SOC2, PCI-DSS, and GDPR compliance tracking
+- **Team Management** - Multi-user access with role-based permissions
 
 ## Quick Start
 
@@ -20,7 +23,7 @@
 
 - Docker & Docker Compose
 - Node.js 18+
-- Python 3.9+
+- MySQL 8.0 (or Docker)
 
 ### Installation
 
@@ -31,74 +34,98 @@
    cd devpulse
    ```
 
-2. **Start the Backend**
+2. **Set up environment variables**
 
    ```bash
-   cd devpulse-backend
-   pip install -r requirements.txt
-   python main.py
+   cp .env.example .env
+   # Edit .env with your configuration
    ```
 
-3. **Start the Frontend**
+3. **Start with Docker Compose**
 
    ```bash
-   cd devpulse-frontend
-   npm install
-   npm run dev
+   docker-compose -f docker-compose.prod.yml up -d
    ```
 
-4. **Access the Dashboard**
-   - Frontend: http://localhost:3000
-   - API Docs: http://localhost:8000/docs
+4. **Access the Application**
+   - Dashboard: http://localhost:3001 (devpulse-frontend)
+   - API: http://localhost:3000 (Node.js tRPC backend)
+   - Marketing Site: http://localhost:3002 (client/ - Vite-based)
 
-### Using Docker Compose
-
-```bash
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-## API Documentation
-
-### Core Endpoints
-
-- `POST /api/agent/interact` - Submit LLM calls for monitoring
-- `GET /api/analytics/summary` - Get cost summary and security events
-- `POST /api/security/scan` - Scan code for security issues
-- `POST /api/webhooks/github` - Handle GitHub webhook events
-- `WS /ws` - WebSocket for real-time dashboard updates
-
-### Example: Submit LLM Call
+### Development Mode
 
 ```bash
-curl -X POST http://localhost:8000/api/agent/interact \
-  -H "Content-Type: application/json" \
-  -d '{
-    "agent_id": "my-agent",
-    "model": "gpt-4",
-    "prompt_tokens": 1000,
-    "completion_tokens": 500
-  }'
+# Install dependencies
+pnpm install
+
+# Start the Node.js backend (tRPC + Express)
+pnpm dev
+
+# In a separate terminal, start the dashboard (Next.js)
+cd devpulse-frontend && pnpm dev
+
+# In another terminal, start the marketing site (Vite)
+cd client && pnpm dev
 ```
 
 ## Architecture
 
-```
-devpulse-backend/
-  ├── main.py              # FastAPI application
-  ├── database.py         # SQLite/PostgreSQL persistence
-  ├── websocket_manager.py # Real-time connections
-  └── services/
-      ├── cost_tracker.py      # Cost calculation & anomaly detection
-      ├── shadow_api_detector.py # Security scanning
-      └── github_integration.py  # Webhook handling
+### Project Structure
 
-devpulse-frontend/
-  ├── app/
-  │   ├── page.tsx        # Landing page
-  │   └── dashboard/     # Real-time dashboard
-  └── components/
-      └── RiskChart.tsx   # Data visualization
 ```
+devpulse-app/
+├── server/              # Node.js tRPC Backend (Main API)
+│   ├── _core/          # Core middleware, auth, config
+│   ├── routers/        # tRPC routers (collections, scanning, payments, etc.)
+│   ├── db/            # Database queries and connection
+│   └── payments.ts    # Razorpay payment integration
+│
+├── devpulse-frontend/   # Next.js Dashboard (Product UI)
+│   └── app/           # Main application pages
+│       ├── dashboard/  # Real-time monitoring dashboard
+│       ├── collections/# API collection management
+│       ├── scanning/   # Security scanning interface
+│       ├── analytics/  # Token usage analytics
+│       ├── team/       # Team management
+│       └── admin/      # Admin dashboard
+│
+├── client/            # Vite React Marketing Site
+│   └── src/           # Landing pages, pricing, about
+│
+├── drizzle/           # Database schema and migrations
+├── shared/            # Shared types and constants
+└── docker-compose.prod.yml  # Production deployment
+```
+
+### Frontend Structure Clarification
+
+| Directory | Framework | Purpose | Auth Required |
+|-----------|-----------|---------|---------------|
+| `devpulse-frontend/` | Next.js 14+ | **Main Product Dashboard** - Collections, scanning, analytics, team management, admin | Yes |
+| `client/` | Vite + React | **Marketing Website** - Landing page, pricing, about, contact | No |
+
+**Note:** The `devpulse-frontend/` directory contains the actual DevPulse product interface. The `client/` directory is the public-facing marketing website.
+
+### Backend Architecture
+
+**Single Backend: Node.js + tRPC**
+
+The application uses a single Node.js backend with tRPC for type-safe API calls:
+
+- **Auth:** JWT-based authentication with Google OAuth support
+- **Database:** MySQL with Drizzle ORM
+- **Real-time:** WebSocket for live updates
+- **Payments:** Razorpay integration for subscriptions
+- **Security:** OWASP Top 10 scanning, shadow API detection
+
+**Retired:** The Python FastAPI backend (`devpulse-backend/`) has been retired and should be deleted for cleanliness. All functionality has been migrated to the Node.js backend.
+
+## Security Notes
+
+- See `security-patch.md` for details on security vulnerabilities discovered during audit
+- Password hashing has been updated to PBKDF2-SHA512 (100k iterations)
+- Webhook signature verification handles edge cases properly
+- WebSocket authentication now verifies sessions server-side
 
 ## Configuration
 

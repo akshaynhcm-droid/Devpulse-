@@ -3,11 +3,10 @@ import os
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from database import SessionLocal, User
+from database import get_db_session, User
 
 def make_admin(email: str):
-    db = SessionLocal()
-    try:
+    with get_db_session() as db:
         user = db.query(User).filter(User.email == email).first()
         if user:
             user.is_admin = True
@@ -17,8 +16,6 @@ def make_admin(email: str):
         else:
             print(f"Error: User {email} not found.")
             return False
-    finally:
-        db.close()
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

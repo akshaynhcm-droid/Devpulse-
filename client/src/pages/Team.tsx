@@ -39,10 +39,13 @@ export default function Team() {
   const [removeDialogEmail, setRemoveDialogEmail] = useState<string>("");
 
   const { data: team, refetch } = trpc.team.list.useQuery();
+  const { data: pendingInvites } = trpc.team.getPendingInvitations.useQuery();
   const inviteMutation = trpc.team.invite.useMutation();
   const updateRoleMutation = trpc.team.updateRole.useMutation();
   const removeMutation = trpc.team.remove.useMutation();
   const resendInviteMutation = trpc.team.resendInvite.useMutation();
+  const acceptMutation = trpc.team.acceptInvitation.useMutation();
+  const rejectMutation = trpc.team.rejectInvitation.useMutation();
 
   const handleInvite = async () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -277,6 +280,62 @@ export default function Team() {
       </div>
 
       {/* Role Information */}
+      {/* Pending Invitations for Current User */}
+      {pendingInvites && pendingInvites.invitations.length > 0 && (
+        <Card className="p-6 space-y-4 border-blue-500/30 bg-blue-50/50 dark:bg-blue-900/10">
+          <h3 className="font-semibold text-foreground flex items-center gap-2">
+            <Mail className="h-4 w-4" />
+            Pending Invitations
+          </h3>
+          <div className="space-y-3">
+            {pendingInvites.invitations.map((inv: any) => (
+              <div key={inv.id} className="flex items-center justify-between p-3 rounded-lg border bg-background">
+                <div>
+                  <p className="text-sm font-medium">Invited as <span className={`px-2 py-0.5 rounded text-xs ${roleColors[inv.role as Role]}`}>{inv.role}</span></p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Received {new Date(inv.invitedAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        await acceptMutation.mutateAsync({ memberId: inv.id });
+                        toast.success("Invitation accepted!");
+                        refetch();
+                      } catch (err: any) {
+                        toast.error(err.message || "Failed to accept invitation");
+                      }
+                    }}
+                    disabled={acceptMutation.isPending}
+                  >
+                    Accept
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-destructive hover:bg-destructive/10"
+                    onClick={async () => {
+                      try {
+                        await rejectMutation.mutateAsync({ memberId: inv.id });
+                        toast.success("Invitation rejected");
+                        refetch();
+                      } catch (err: any) {
+                        toast.error(err.message || "Failed to reject invitation");
+                      }
+                    }}
+                    disabled={rejectMutation.isPending}
+                  >
+                    Reject
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       <Card className="p-6 space-y-4 bg-muted/50">
         <h3 className="font-semibold text-foreground">Role Permissions</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

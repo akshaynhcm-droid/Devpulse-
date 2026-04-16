@@ -32,6 +32,7 @@ import {
   BarChart3,
   Zap,
   FileText,
+  CreditCard,
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -47,6 +48,7 @@ const menuItems = [
   { icon: Zap, label: "Kill Switch", path: "/kill-switch" },
   { icon: FileText, label: "Compliance", path: "/compliance" },
   { icon: Users, label: "Team", path: "/team" },
+  { icon: CreditCard, label: "Pricing", path: "/pricing" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";

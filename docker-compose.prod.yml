@@ -27,6 +27,22 @@ services:
     networks:
       - devpulse-network
 
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - devpulse-network
+
   app:
     build:
       context: .
@@ -43,6 +59,9 @@ services:
 
       # ── Database ─────────────────────────────────────────────────
       DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD:-changeme_in_production}@db:3306/devpulse_db
+
+      # ── Redis Cache ───────────────────────────────────────────────────────
+      REDIS_URL: redis://redis:6379
 
       # ── Auth (JWT) ───────────────────────────────────────────────
       JWT_SECRET: ${JWT_SECRET}
@@ -74,16 +93,63 @@ services:
       # ── Notifications ─────────────────────────────────────────────
       SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
 
-      # ── Error Monitoring ─────────────────────────────────────────
+      # ── Error Monitoring ─────────────────────────────────────────────
       SENTRY_DSN: ${SENTRY_DSN:-}
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - devpulse-network
+
+  # ── Next.js Frontend (DevPulse Command Center) ────────────────────────
+  frontend:
+    build:
+      context: ./devpulse-frontend
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "3001:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://app:3000
+      NEXT_PUBLIC_WS_URL: ws://app:3000/ws
+    depends_on:
+      - app
+    networks:
+      - devpulse-network
+
+  # ── Backup Service (Cron) ─────────────────────────────────────────────
+  backup:
+    image: amazon/aws-cli:latest
+    restart: unless-stopped
+    volumes:
+      - ./scripts:/scripts
+      - /backups:/backups
+    environment:
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_DEFAULT_REGION: ${AWS_REGION:-us-east-1}
+      S3_BACKUP_BUCKET: ${S3_BACKUP_BUCKET:-devpulse-backups}
+      DB_HOST: db
+      DB_NAME: devpulse_db
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-changeme_in_production}
+    command: >
+      sh -c "
+        yum install -y mysql gzip &&
+        echo '0 2 * * * /scripts/backup.sh daily' | crontab - &&
+        echo '0 3 1 * * /scripts/backup.sh monthly' | crontab - &&
+        crond -f
+      "
+    depends_on:
+      - db
     networks:
       - devpulse-network
 
 volumes:
   mysql_data:
+  redis_data:
 
 networks:
   devpulse-network:

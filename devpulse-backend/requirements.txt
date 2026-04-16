@@ -9,9 +9,12 @@ jose
 passlib[bcrypt]
 python-jose[cryptography]
 psycopg2-binary
+pymysql
 numpy
 pytest
 slowapi
 stripe
 sentry-sdk
 httpx
+python-dotenv
+email-validator

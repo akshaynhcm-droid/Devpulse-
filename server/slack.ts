@@ -12,6 +12,27 @@ interface KillSwitchAlertOptions {
   budgetLimit: number;
 }
 
+interface ScanAlertOptions {
+  userId: number;
+  userName: string;
+  collectionName: string;
+  scanId: string;
+  totalFindings: number;
+  criticalCount: number;
+  highCount: number;
+  triggeredBy: "user" | "github_push" | "github_pr";
+  prNumber?: number;
+  branch?: string;
+}
+
+interface BudgetWarningOptions {
+  userId: number;
+  userName: string;
+  currentSpend: number;
+  budgetLimit: number;
+  percentUsed: number;
+}
+
 export async function sendSlackKillSwitchAlert(opts: KillSwitchAlertOptions): Promise<void> {
   const webhookUrl = process.env.SLACK_WEBHOOK_URL;
 
@@ -89,4 +110,164 @@ export async function sendSlackKillSwitchAlert(opts: KillSwitchAlertOptions): Pr
   }
 
   console.log(`[Slack] Kill switch alert sent for user ${opts.userId}`);
+}
+
+export async function sendSlackScanAlert(opts: ScanAlertOptions): Promise<void> {
+  const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+
+  if (!webhookUrl) {
+    console.log(`[Slack] Webhook not configured. Scan completed for collection ${opts.collectionName}`);
+    return;
+  }
+
+  const triggerEmoji = opts.triggeredBy === "github_push" ? "🔄" : opts.triggeredBy === "github_pr" ? "🔀" : "🔍";
+  const triggerText = opts.triggeredBy === "github_push" 
+    ? `GitHub push to ${opts.branch || "main"}` 
+    : opts.triggeredBy === "github_pr" 
+      ? `GitHub PR #${opts.prNumber}` 
+      : "Manual scan";
+
+  const severityEmoji = opts.criticalCount > 0 ? "🚨" : opts.highCount > 0 ? "⚠️" : "✅";
+  const color = opts.criticalCount > 0 ? "#FF0000" : opts.highCount > 0 ? "#FFA500" : "#36A64F";
+
+  const payload = {
+    text: `${severityEmoji} *DevPulse Security Scan Complete*`,
+    blocks: [
+      {
+        type: "header",
+        text: {
+          type: "plain_text",
+          text: `${severityEmoji} Security Scan Complete`,
+          emoji: true,
+        },
+      },
+      {
+        type: "section",
+        fields: [
+          {
+            type: "mrkdwn",
+            text: `*Collection:*\n${opts.collectionName}`,
+          },
+          {
+            type: "mrkdwn",
+            text: `*Triggered by:*\n${triggerEmoji} ${triggerText}`,
+          },
+          {
+            type: "mrkdwn",
+            text: `*User:*\n${opts.userName} (ID: ${opts.userId})`,
+          },
+          {
+            type: "mrkdwn",
+            text: `*Time:*\n${new Date().toUTCString()}`,
+          },
+        ],
+      },
+      {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `*Findings Summary:*\n${opts.criticalCount > 0 ? `🚨 ${opts.criticalCount} Critical\n` : ""}${opts.highCount > 0 ? `⚠️ ${opts.highCount} High\n` : ""}Total: ${opts.totalFindings} findings`,
+        },
+      },
+      {
+        type: "divider",
+      },
+      {
+        type: "context",
+        elements: [
+          {
+            type: "mrkdwn",
+            text: `View full report: ${process.env.APP_URL || "http://localhost:3000"}/scanning`,
+          },
+        ],
+      },
+    ],
+  };
+
+  const response = await fetch(webhookUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Slack webhook returned ${response.status}: ${await response.text()}`);
+  }
+
+  console.log(`[Slack] Scan alert sent for collection ${opts.collectionName}`);
+}
+
+export async function sendSlackBudgetWarning(opts: BudgetWarningOptions): Promise<void> {
+  const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+
+  if (!webhookUrl) {
+    console.log(`[Slack] Webhook not configured. Budget warning for user ${opts.userId} (${opts.userName}): ${opts.percentUsed.toFixed(1)}% used`);
+    return;
+  }
+
+  const payload = {
+    text: `⚠️ *DevPulse Budget Warning*`,
+    blocks: [
+      {
+        type: "header",
+        text: {
+          type: "plain_text",
+          text: "⚠️ Budget Warning: 80% Threshold Reached",
+          emoji: true,
+        },
+      },
+      {
+        type: "section",
+        fields: [
+          {
+            type: "mrkdwn",
+            text: `*User:*\n${opts.userName} (ID: ${opts.userId})`,
+          },
+          {
+            type: "mrkdwn",
+            text: `*Time:*\n${new Date().toUTCString()}`,
+          },
+          {
+            type: "mrkdwn",
+            text: `*Current Spend:*\n$${opts.currentSpend.toFixed(2)}`,
+          },
+          {
+            type: "mrkdwn",
+            text: `*Budget Limit:*\n$${opts.budgetLimit.toFixed(2)}`,
+          },
+        ],
+      },
+      {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `*Percent Used: ${opts.percentUsed.toFixed(1)}%*\nThe kill switch will activate at 100% to prevent overspending.`,
+        },
+      },
+      {
+        type: "divider",
+      },
+      {
+        type: "context",
+        elements: [
+          {
+            type: "mrkdwn",
+            text: "To adjust budget limits, go to DevPulse → Kill Switch → Settings",
+          },
+        ],
+      },
+    ],
+  };
+
+  const response = await fetch(webhookUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Slack webhook returned ${response.status}: ${await response.text()}`);
+  }
+
+  console.log(`[Slack] Budget warning sent for user ${opts.userId}`);
 }

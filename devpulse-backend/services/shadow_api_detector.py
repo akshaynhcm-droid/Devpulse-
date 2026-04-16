@@ -9,7 +9,7 @@ class ShadowAPIDetector:
             r'["\'](https?://[^"\']+)["\']'
         )
         self.secrets_pattern = re.compile(
-            r'(?:api_key|apikey|secret|password|token)\s*[=:]\s*["\']([a-zA-Z0-9_\-]{16,})["\']',
+            r'(api_key|apikey|secret|password|token)\s*[=:]\s*["\']([a-zA-Z0-9_\-]{16,})["\']',
             re.IGNORECASE
         )
 
