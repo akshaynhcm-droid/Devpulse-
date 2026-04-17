@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { EmptyState } from "@/components/EmptyState";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -93,18 +94,30 @@ export default function ShadowAPIsPage() {
           {loading ? (
             <p className="text-gray-400">Loading...</p>
           ) : !selectedCollection ? (
-            <p className="text-gray-500 text-center py-12">
-              Select a collection to scan for shadow APIs.
-            </p>
+            <EmptyState
+              icon={<span>🔎</span>}
+              title="Pick a collection"
+              description="Shadow-API detection compares your production traffic against the endpoints defined in each collection. Select one above to get started."
+              actions={[
+                {
+                  label: "Import a collection",
+                  href: "/collections",
+                },
+              ]}
+            />
           ) : shadowAPIs.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-green-400 text-lg font-bold">
-                No shadow APIs found
-              </p>
-              <p className="text-gray-400 mt-2">
-                All endpoints in this collection are documented.
-              </p>
-            </div>
+            <EmptyState
+              icon={<span>✅</span>}
+              title="No shadow APIs found"
+              description="Every endpoint seen in traffic is documented in this collection. Nice work."
+              actions={[
+                {
+                  label: "Run another scan",
+                  href: "/scanning",
+                  variant: "secondary",
+                },
+              ]}
+            />
           ) : (
             shadowAPIs.map(api => (
               <div

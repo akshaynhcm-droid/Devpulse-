@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { format } from "date-fns";
+import { EmptyState } from "@/components/EmptyState";
 import {
   Loader2,
   CreditCard,
@@ -309,7 +310,12 @@ export default function BillingPage() {
           <h2 className="text-lg font-semibold mb-4">Invoice History</h2>
 
           {invoices.length === 0 ? (
-            <p className="text-slate-400 text-center py-8">No invoices yet</p>
+            <EmptyState
+              compact
+              icon={<span>🧾</span>}
+              title="No invoices yet"
+              description="Once you subscribe to a paid plan your receipts and payment history will appear here."
+            />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">

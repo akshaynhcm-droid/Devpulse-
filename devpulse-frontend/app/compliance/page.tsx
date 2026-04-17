@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { EmptyState } from "@/components/EmptyState";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -117,9 +118,22 @@ export default function CompliancePage() {
         {loading ? (
           <p className="text-gray-400">Loading reports...</p>
         ) : reports.length === 0 ? (
-          <p className="text-gray-500 text-center py-12">
-            No compliance reports yet.
-          </p>
+          <EmptyState
+            icon={<span>📋</span>}
+            title="No compliance reports yet"
+            description="Generate a PCI DSS or OWASP Top 10 report to see how each framework scores your APIs."
+            actions={[
+              {
+                label: "Generate report",
+                onClick: generateReport,
+              },
+              {
+                label: "Import a collection",
+                href: "/collections",
+                variant: "secondary",
+              },
+            ]}
+          />
         ) : (
           <div className="space-y-3">
             {reports.map((report: any) => (

@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { EmptyState } from "@/components/EmptyState";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -83,16 +84,26 @@ export default function ScanningPage() {
                 Findings ({findings.length})
               </h2>
               {!scanned ? (
-                <p className="text-gray-500 text-center py-12">
-                  Run a scan to see results here
-                </p>
+                <EmptyState
+                  compact
+                  icon={<span>🔍</span>}
+                  title="Nothing scanned yet"
+                  description="Paste a snippet or upload a collection and run a scan to see findings here."
+                />
               ) : findings.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-green-400 text-lg font-bold">
-                    No Issues Found
-                  </p>
-                  <p className="text-gray-400 mt-2">Your code looks clean!</p>
-                </div>
+                <EmptyState
+                  compact
+                  icon={<span>✅</span>}
+                  title="No issues found"
+                  description="Your code looks clean. Re-run on each commit via the VS Code extension or CI to keep it that way."
+                  actions={[
+                    {
+                      label: "View collections",
+                      href: "/collections",
+                      variant: "secondary",
+                    },
+                  ]}
+                />
               ) : (
                 <div className="space-y-3 max-h-[500px] overflow-y-auto">
                   {findings.map((f, i) => (

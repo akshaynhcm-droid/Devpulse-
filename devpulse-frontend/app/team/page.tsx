@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { EmptyState } from "@/components/EmptyState";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -106,9 +107,12 @@ export default function TeamPage() {
           {loading ? (
             <p className="text-gray-400">Loading...</p>
           ) : members.length === 0 ? (
-            <p className="text-gray-500 text-center py-12">
-              No team members yet.
-            </p>
+            <EmptyState
+              compact
+              icon={<span>👥</span>}
+              title="No team members yet"
+              description="Invite a teammate above to share collections, reports, and on-call alerts."
+            />
           ) : (
             <div className="space-y-3">
               {members.map((member: any) => (

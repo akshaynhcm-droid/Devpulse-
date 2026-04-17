@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { EmptyState } from "@/components/EmptyState";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -200,7 +201,12 @@ export default function KillSwitchPage() {
             <div>
               <h2 className="text-xl font-semibold mb-4">Audit Trail</h2>
               {logs.length === 0 ? (
-                <p className="text-gray-500">No kill switch events yet.</p>
+                <EmptyState
+                  compact
+                  icon={<span>🛑</span>}
+                  title="No kill-switch events yet"
+                  description="Trigger a manual stop above or hit your budget limit to see events recorded here."
+                />
               ) : (
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {logs.map((log: any) => (

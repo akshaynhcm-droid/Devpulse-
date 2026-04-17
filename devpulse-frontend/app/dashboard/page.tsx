@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback, useRef } from "react";
 import RiskChart from "../../components/RiskChart";
+import { EmptyState } from "../../components/EmptyState";
 
 function getWsUrl(): string {
   if (process.env.NEXT_PUBLIC_WS_URL) return process.env.NEXT_PUBLIC_WS_URL;
@@ -207,9 +208,18 @@ export default function Dashboard() {
           </div>
           <div className="space-y-2 max-h-96 overflow-y-auto">
             {logs.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">
-                No activity yet. Click "Simulate API Call" to test.
-              </p>
+              <EmptyState
+                compact
+                icon={<span>📡</span>}
+                title="No activity yet"
+                description='Click "Simulate API Call" to send a test event, or wire up the DevPulse SDK to stream live agent traffic here.'
+                actions={[
+                  {
+                    label: "Simulate API Call",
+                    onClick: triggerTestCall,
+                  },
+                ]}
+              />
             ) : (
               logs.map((log, i) => (
                 <div

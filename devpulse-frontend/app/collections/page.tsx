@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { EmptyState } from "@/components/EmptyState";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -148,11 +149,22 @@ export default function CollectionsPage() {
           {loading ? (
             <p className="text-gray-400">Loading collections...</p>
           ) : collections.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500">
-                No collections yet. Import your first collection to get started.
-              </p>
-            </div>
+            <EmptyState
+              icon={<span>📚</span>}
+              title="No collections yet"
+              description="Import a Postman or OpenAPI collection to start scanning your APIs for security issues and shadow endpoints."
+              actions={[
+                {
+                  label: "Import Collection",
+                  onClick: () => setShowUpload(true),
+                },
+                {
+                  label: "View documentation",
+                  href: "/onboarding",
+                  variant: "secondary",
+                },
+              ]}
+            />
           ) : (
             collections.map(col => (
               <div

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { EmptyState } from "@/components/EmptyState";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -86,9 +87,12 @@ export default function AnalyticsPage() {
             <h2 className="text-xl font-semibold mb-4">Recent API Calls</h2>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {data?.recent_calls?.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">
-                  No recent calls
-                </p>
+                <EmptyState
+                  compact
+                  icon={<span>📊</span>}
+                  title="No API calls yet"
+                  description="Wire up the DevPulse SDK or VS Code extension so we can stream token usage into this view."
+                />
               ) : (
                 data?.recent_calls?.map((call, i) => (
                   <div
@@ -116,9 +120,19 @@ export default function AnalyticsPage() {
             <h2 className="text-xl font-semibold mb-4">Security Events</h2>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {data?.security_events?.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">
-                  No security events
-                </p>
+                <EmptyState
+                  compact
+                  icon={<span>🛡️</span>}
+                  title="No security events"
+                  description="A clean board is a good board. Run a scan on your collections to surface potential issues."
+                  actions={[
+                    {
+                      label: "Run a scan",
+                      href: "/scanning",
+                      variant: "secondary",
+                    },
+                  ]}
+                />
               ) : (
                 data?.security_events?.map((event, i) => (
                   <div key={i} className="bg-gray-700/50 p-3 rounded">
