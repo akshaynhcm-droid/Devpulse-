@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import RiskChart from "../../components/RiskChart";
 import { EmptyState } from "../../components/EmptyState";
+import PlanUtilizationBanner from "../../components/PlanUtilizationBanner";
 
 function getWsUrl(): string {
   if (process.env.NEXT_PUBLIC_WS_URL) return process.env.NEXT_PUBLIC_WS_URL;
@@ -146,6 +147,8 @@ export default function Dashboard() {
             </span>
           </div>
         </div>
+
+        <PlanUtilizationBanner />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">

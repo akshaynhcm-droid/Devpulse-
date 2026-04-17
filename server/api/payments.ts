@@ -15,6 +15,7 @@ import {
   type RazorpayWebhookPayload,
   processRefund,
 } from "../payments";
+import { computePlanUtilization } from "../utils/planLimits";
 
 export const paymentsRouter = router({
   createSubscription: protectedProcedure
@@ -234,12 +235,31 @@ export const paymentsRouter = router({
 
   getCurrentPlan: protectedProcedure.query(async ({ ctx }) => {
     const subscription = await db.getSubscriptionByUserId(ctx.user.id);
-    const limits = getPlanLimits(subscription?.plan || "free");
+    const plan = (subscription?.plan || "free") as "free" | "pro" | "enterprise";
+    const limits = getPlanLimits(plan);
+
+    // Utilization — inspired by Claude Code's `getRawUtilization()`. The
+    // dashboard banner and VS Code status bar read this to show proactive
+    // "you've used 75% of your daily scans" warnings.
+    const [collections, dailyScans] = await Promise.all([
+      db.getCollectionsByUserId(ctx.user.id),
+      (async () => {
+        const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const recent = await db.getRecentScans(ctx.user.id, 100);
+        return recent.filter(s => s.createdAt >= since).length;
+      })(),
+    ]);
+    const utilization = computePlanUtilization(
+      plan,
+      collections.length,
+      dailyScans
+    );
 
     return {
-      plan: subscription?.plan || "free",
+      plan,
       status: subscription?.status || "none",
       limits,
+      utilization,
     };
   }),
 });

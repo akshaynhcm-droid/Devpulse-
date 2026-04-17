@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure, editorProcedure } from "../_core/trpc";
 import * as db from "../db";
 import {
@@ -9,6 +8,7 @@ import {
   invalidateUserCache,
 } from "../_core/cache";
 import { getPlanLimits } from "../payments";
+import { collectionLimitError } from "../utils/planLimits";
 
 export const collectionsRouter = router({
   create: editorProcedure
@@ -28,15 +28,17 @@ export const collectionsRouter = router({
       // Plan-limit enforcement: free users are capped at `maxCollections`.
       // Existing collections above the cap are grandfathered — we only
       // block NEW creation. Pro / Enterprise resolve to Infinity.
+      // Throws a structured `plan_limit` TRPCError (see utils/planLimits.ts).
       const plan = (ctx.user.plan ?? "free") as "free" | "pro" | "enterprise";
       const limits = getPlanLimits(plan);
       if (Number.isFinite(limits.maxCollections)) {
         const existing = await db.getCollectionsByUserId(ctx.user.id);
         if (existing.length >= limits.maxCollections) {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: `Your ${plan} plan allows ${limits.maxCollections} collections. Upgrade at /pricing to add more.`,
-          });
+          throw collectionLimitError(
+            plan,
+            existing.length,
+            limits.maxCollections
+          );
         }
       }
 

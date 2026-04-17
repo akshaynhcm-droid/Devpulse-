@@ -67,6 +67,8 @@ vi.mock("../db", async () => ({
   getPaymentsByUserId: vi.fn(async () => []),
   createPayment: vi.fn(async () => ({})),
   updatePaymentRefundStatus: vi.fn(async () => {}),
+  getCollectionsByUserId: vi.fn(async () => []),
+  getRecentScans: vi.fn(async () => []),
 }));
 
 function createAuthContext(userId: number = 1) {

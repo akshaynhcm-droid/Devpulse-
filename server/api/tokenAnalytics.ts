@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
 import * as db from "../db";
+import {
+  bytesPerTokenForFileType,
+  estimateCostForContent,
+} from "../utils/tokenEstimation";
 
 export const tokenAnalyticsRouter = router({
   recordUsage: protectedProcedure
@@ -87,6 +91,36 @@ export const tokenAnalyticsRouter = router({
           totalTokens: u.totalTokens,
           costUSD: parseFloat(u.costUSD as any),
         })),
+      };
+    }),
+
+  /**
+   * Content-aware cost estimate. Given a chunk of text plus an optional file
+   * type hint (e.g. "json", "ts", "md"), returns a token count and USD cost.
+   * Pattern adapted from Claude Code's tokenEstimation: JSON payloads tokenize
+   * at ~2 bytes/token vs. prose at ~4, so a flat ratio systematically
+   * underestimates cost for API-scan-heavy users.
+   */
+  estimateCost: protectedProcedure
+    .input(
+      z.object({
+        content: z.string().max(2_000_000),
+        fileExtension: z.string().max(32).optional(),
+        pricePer1MTokens: z.number().min(0).default(3),
+      })
+    )
+    .query(({ input }) => {
+      const { tokens, costUSD } = estimateCostForContent(
+        input.content,
+        input.pricePer1MTokens,
+        input.fileExtension
+      );
+      return {
+        tokens,
+        costUSD,
+        bytesPerTokenUsed: input.fileExtension
+          ? bytesPerTokenForFileType(input.fileExtension)
+          : 4,
       };
     }),
 
