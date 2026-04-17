@@ -1,14 +1,15 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import crypto from "crypto";
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
+import { sdk } from "./_core/sdk";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import * as db from "./db";
 import { sendPasswordResetEmail } from "./email";
 import { settingsRouter } from "./settingsRouter";
-import { hashPassword } from "./utils/password";
+import { hashPassword, verifyPassword } from "./utils/password";
 
 // Import individual routers
 import { collectionsRouter } from "./api/collections";
@@ -38,6 +39,118 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true };
     }),
+    signup: publicProcedure
+      .input(
+        z.object({
+          email: z.string().email().max(320),
+          password: z.string().min(8).max(128),
+          name: z.string().min(1).max(120),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const normalizedEmail = input.email.trim().toLowerCase();
+        const existing = await db.getUserByEmail(normalizedEmail);
+        if (existing) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "An account with this email already exists",
+          });
+        }
+
+        const passwordHash = hashPassword(input.password);
+        const created = await db.createLocalUser({
+          email: normalizedEmail,
+          name: input.name.trim(),
+          passwordHash,
+        });
+
+        const sessionToken = await sdk.createSessionToken(created.openId, {
+          name: input.name.trim(),
+        });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, {
+          ...cookieOptions,
+          maxAge: ONE_YEAR_MS,
+        });
+
+        await db.createAuditLogEntry(
+          created.id,
+          "signup_email",
+          { email: normalizedEmail },
+          ctx.req.ip,
+          ctx.req.headers["user-agent"] as string
+        );
+
+        return {
+          success: true,
+          userId: created.id,
+        };
+      }),
+    login: publicProcedure
+      .input(
+        z.object({
+          email: z.string().email().max(320),
+          password: z.string().min(1).max(128),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const normalizedEmail = input.email.trim().toLowerCase();
+        const user = await db.getUserByEmail(normalizedEmail);
+
+        // Always throw the same error on unknown email / wrong password to
+        // avoid leaking which accounts exist. Legitimate server errors
+        // still surface as INTERNAL_SERVER_ERROR.
+        const invalidCredentials = new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Invalid email or password",
+        });
+
+        if (!user || !user.passwordHash) {
+          throw invalidCredentials;
+        }
+
+        if (user.lockedUntil && new Date() < new Date(user.lockedUntil)) {
+          throw new TRPCError({
+            code: "TOO_MANY_REQUESTS",
+            message: "Account temporarily locked. Try again in a few minutes.",
+          });
+        }
+
+        const ok = verifyPassword(input.password, user.passwordHash);
+        if (!ok) {
+          const { attempts, lockedUntil } =
+            await db.incrementFailedLoginAttempts(user.id);
+          await db.createAuditLogEntry(
+            user.id,
+            "login_failed",
+            { email: normalizedEmail, attempts, lockedUntil },
+            ctx.req.ip,
+            ctx.req.headers["user-agent"] as string
+          );
+          throw invalidCredentials;
+        }
+
+        await db.resetFailedLoginAttempts(user.id);
+
+        const sessionToken = await sdk.createSessionToken(user.openId, {
+          name: user.name || "",
+        });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, {
+          ...cookieOptions,
+          maxAge: ONE_YEAR_MS,
+        });
+
+        await db.createAuditLogEntry(
+          user.id,
+          "login_email",
+          { email: normalizedEmail },
+          ctx.req.ip,
+          ctx.req.headers["user-agent"] as string
+        );
+
+        return { success: true, userId: user.id };
+      }),
     forgotPassword: publicProcedure
       .input(z.object({ email: z.string().email() }))
       .mutation(async ({ input }) => {

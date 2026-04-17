@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { eq, and, desc, gte, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
@@ -1552,7 +1553,92 @@ export async function updateUserPassword(
   await db
     .update(users)
     .set({
-      openId: hashedPassword, // Store hashed password in openId field for now (auth migration later)
+      passwordHash: hashedPassword,
+      failedLoginAttempts: 0,
+      lockedUntil: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, userId));
+}
+
+/**
+ * Create a new user that signed up via email + password (not OAuth).
+ * The `openId` field is still used as the session subject for JWT auth,
+ * so we generate a unique "local:" prefix to keep it distinct from
+ * OAuth-synced users.
+ */
+export async function createLocalUser(data: {
+  email: string;
+  name: string;
+  passwordHash: string;
+}): Promise<{ id: number; openId: string }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const openId = `local:${crypto.randomBytes(24).toString("hex")}`;
+
+  await db.insert(users).values({
+    openId,
+    email: data.email,
+    name: data.name,
+    loginMethod: "email",
+    passwordHash: data.passwordHash,
+    lastSignedIn: new Date(),
+  });
+
+  const created = await db
+    .select({ id: users.id, openId: users.openId })
+    .from(users)
+    .where(eq(users.openId, openId))
+    .limit(1);
+
+  if (created.length === 0) {
+    throw new Error("Failed to create user");
+  }
+
+  return created[0];
+}
+
+export async function incrementFailedLoginAttempts(
+  userId: number,
+  lockThreshold = 5,
+  lockDurationMs = 15 * 60 * 1000
+): Promise<{ attempts: number; lockedUntil: Date | null }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const existing = await db
+    .select({ attempts: users.failedLoginAttempts })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  const attempts = (existing[0]?.attempts ?? 0) + 1;
+  const lockedUntil =
+    attempts >= lockThreshold ? new Date(Date.now() + lockDurationMs) : null;
+
+  await db
+    .update(users)
+    .set({
+      failedLoginAttempts: attempts,
+      lockedUntil,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, userId));
+
+  return { attempts, lockedUntil };
+}
+
+export async function resetFailedLoginAttempts(userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db
+    .update(users)
+    .set({
+      failedLoginAttempts: 0,
+      lockedUntil: null,
+      lastSignedIn: new Date(),
       updatedAt: new Date(),
     })
     .where(eq(users.id, userId));
