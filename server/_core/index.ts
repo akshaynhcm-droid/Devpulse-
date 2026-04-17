@@ -217,6 +217,20 @@ async function startServer() {
   });
 
   app.use(globalLimiter);
+  // Strict auth limiter for tRPC auth.login / auth.signup / auth.resetPassword
+  // (runs BEFORE the broader apiLimiter so the tighter bucket wins).
+  app.use("/api/trpc", (req, res, next) => {
+    const url = req.originalUrl || req.url || "";
+    if (
+      url.includes("auth.login") ||
+      url.includes("auth.signup") ||
+      url.includes("auth.resetPassword") ||
+      url.includes("auth.forgotPassword")
+    ) {
+      return authLimiter(req, res, next);
+    }
+    return next();
+  });
   app.use("/api/trpc", apiLimiter);
   app.use("/api/oauth", authLimiter);
 
