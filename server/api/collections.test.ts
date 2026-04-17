@@ -476,7 +476,7 @@ describe("Collections Router", () => {
       const findings = await getFindingsByScanId("scan_1");
       const limitedFindings = findings.slice(0, 10);
 
-      expect(fimitedFindings).toHaveLength(10);
+      expect(limitedFindings).toHaveLength(10);
     });
   });
 });

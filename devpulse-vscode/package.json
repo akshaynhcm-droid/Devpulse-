@@ -8,8 +8,17 @@
   "engines": {
     "vscode": "^1.85.0"
   },
-  "categories": ["Other", "Linters"],
-  "keywords": ["devpulse", "security", "llm", "ai", "cost"],
+  "categories": [
+    "Other",
+    "Linters"
+  ],
+  "keywords": [
+    "devpulse",
+    "security",
+    "llm",
+    "ai",
+    "cost"
+  ],
   "main": "./out/extension.js",
   "activationEvents": [
     "onStartupFinished"

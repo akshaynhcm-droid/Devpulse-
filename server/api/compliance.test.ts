@@ -94,7 +94,7 @@ describe("Compliance Router", () => {
 
       const mockRequirements = [
         { id: "A01", title: "Broken Access Control", status: "met" },
-        { id: "A02", title: "Cryptographic Failures", status: "not_met" },
+        { id: "A02", title: "Cryptographic Failures", status: "manual_review" },
         { id: "A03", title: "Injection", status: "met" },
       ];
 
@@ -444,7 +444,7 @@ describe("Compliance Router", () => {
       const today = new Date().toISOString().split("T")[0];
       const filename = `devpulse-compliance-report-${today}.pdf`;
 
-      expect(filename).toMatch(/^\/tmp\/.*pdf$/);
+      expect(filename).toMatch(/^devpulse-compliance-report-.*\.pdf$/);
       expect(filename).toContain(today);
     });
   });

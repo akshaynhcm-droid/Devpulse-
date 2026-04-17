@@ -35,6 +35,9 @@ vi.mock("../db", async () => {
     getFindingsByScanId: vi.fn(async (scanId: string) => {
       return Array.from(mockFindings.values()).filter(f => f.scanId === scanId);
     }),
+    getFindingById: vi.fn(async (id: string) => mockFindings.get(id) || null),
+    updateFindingStatus: vi.fn(async () => {}),
+    getCollectionsByUserId: vi.fn(async () => []),
     updateCollectionLastScannedAt: vi.fn(async () => {}),
     getUserById: vi.fn(async () => ({
       id: 1,
@@ -123,7 +126,7 @@ describe("scanning router", () => {
 
       await expect(
         caller.scanning.startScan({ collectionId: "col_123", scanType: "full" })
-      ).rejects.toThrow("UNAUTHORIZED");
+      ).rejects.toThrowError(expect.objectContaining({ code: "UNAUTHORIZED" }));
     });
 
     it("throws when user is viewer (no editor/admin role)", async () => {
@@ -224,7 +227,7 @@ describe("scanning router", () => {
           page: 1,
           pageSize: 20,
         })
-      ).rejects.toThrow("UNAUTHORIZED");
+      ).rejects.toThrowError(expect.objectContaining({ code: "UNAUTHORIZED" }));
     });
 
     it("returns empty list for collection with no scans", async () => {
@@ -307,7 +310,7 @@ describe("scanning router", () => {
 
       await expect(
         caller.scanning.getScan({ scanId: "scan_123" })
-      ).rejects.toThrow("UNAUTHORIZED");
+      ).rejects.toThrowError(expect.objectContaining({ code: "UNAUTHORIZED" }));
     });
 
     it("throws when scan does not exist", async () => {
@@ -359,7 +362,7 @@ describe("scanning router", () => {
           findingId: "f_123",
           status: "resolved",
         })
-      ).rejects.toThrow("UNAUTHORIZED");
+      ).rejects.toThrowError(expect.objectContaining({ code: "UNAUTHORIZED" }));
     });
 
     it("throws when finding does not exist", async () => {
@@ -448,6 +451,15 @@ describe("scanning edge cases", () => {
       name: "Empty Collection",
       data: { item: [] }, // Empty collection
     });
+
+    const { runCollectionScan } = await import("../services/scanService");
+    vi.mocked(runCollectionScan).mockResolvedValueOnce({
+      scanId: "scan_empty",
+      riskScore: 0,
+      riskLevel: "LOW",
+      totalFindings: 0,
+      findings: [],
+    } as any);
 
     const result = await caller.scanning.startScan({
       collectionId: "col_empty",

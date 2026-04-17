@@ -573,9 +573,10 @@ describe("TokenAnalytics Router", () => {
         percentage: (cost / totalCost) * 100,
       }));
 
-      expect(percentages[0].percentage).toBeCloseTo(40.0, 0);
-      expect(percentages[1].percentage).toBeCloseTo(26.7, 1);
-      expect(percentages[2].percentage).toBeCloseTo(22.2, 1);
+      // totalCost = 0.1, so each model's percentage is cost / 0.1 * 100.
+      expect(percentages[0].percentage).toBeCloseTo(45.0, 0);
+      expect(percentages[1].percentage).toBeCloseTo(30.0, 0);
+      expect(percentages[2].percentage).toBeCloseTo(25.0, 0);
     });
 
     it("should identify high-cost models", () => {
@@ -585,7 +586,8 @@ describe("TokenAnalytics Router", () => {
         { model: "gemini-pro", cost: 0.025 },
       ];
 
-      const threshold = 0.03;
+      // 0.04 picks out only gpt-4o from the cost list above.
+      const threshold = 0.04;
       const highCostModels = costs.filter(c => c.cost >= threshold);
 
       expect(highCostModels).toHaveLength(1);

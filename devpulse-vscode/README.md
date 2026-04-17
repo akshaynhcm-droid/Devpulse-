@@ -18,21 +18,21 @@ Monitor DevPulse security findings, LLM cost, and scan status directly in your e
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
+| Command                          | Description                                      |
+| -------------------------------- | ------------------------------------------------ |
 | `DevPulse: Sign in with API Key` | Save your API key into VS Code's secret storage. |
-| `DevPulse: Sign out` | Remove the saved API key. |
-| `DevPulse: Refresh` | Re-fetch findings and dashboard summary. |
-| `DevPulse: Run scan` | Queue a scan for a selected collection. |
-| `DevPulse: Open dashboard` | Open the DevPulse web dashboard. |
+| `DevPulse: Sign out`             | Remove the saved API key.                        |
+| `DevPulse: Refresh`              | Re-fetch findings and dashboard summary.         |
+| `DevPulse: Run scan`             | Queue a scan for a selected collection.          |
+| `DevPulse: Open dashboard`       | Open the DevPulse web dashboard.                 |
 
 ## Settings
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `devpulse.apiUrl` | `http://localhost:3000` | Base URL of your DevPulse backend. |
-| `devpulse.heartbeatIntervalSec` | `120` | Seconds between heartbeats. Set `0` to disable. |
-| `devpulse.trackFileChanges` | `true` | Send `file_change` activity events (filename only, no contents). |
+| Setting                         | Default                 | Description                                                      |
+| ------------------------------- | ----------------------- | ---------------------------------------------------------------- |
+| `devpulse.apiUrl`               | `http://localhost:3000` | Base URL of your DevPulse backend.                               |
+| `devpulse.heartbeatIntervalSec` | `120`                   | Seconds between heartbeats. Set `0` to disable.                  |
+| `devpulse.trackFileChanges`     | `true`                  | Send `file_change` activity events (filename only, no contents). |
 
 ## Privacy
 

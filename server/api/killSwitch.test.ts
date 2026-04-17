@@ -291,6 +291,10 @@ describe("KillSwitch Router", () => {
       );
       const { sendKillSwitchRecoveryEmail } = await import("../email");
 
+      // Earlier tests in this describe block share the same email mock,
+      // so clear the call history to assert *this* test didn't send.
+      sendKillSwitchRecoveryEmail.mockClear();
+
       getKillSwitchSettings.mockResolvedValue({ budgetLimitUSD: "100" });
       updateKillSwitchSettings.mockResolvedValue({ success: true });
       sendKillSwitchRecoveryEmail.mockResolvedValue({ messageId: "test" });

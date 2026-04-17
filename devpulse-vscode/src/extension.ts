@@ -80,7 +80,8 @@ export async function activate(
         password: true,
         ignoreFocusOut: true,
         placeHolder: "dp_...",
-        validateInput: v => (v.trim().length < 8 ? "API key looks too short" : null),
+        validateInput: v =>
+          v.trim().length < 8 ? "API key looks too short" : null,
       });
       if (!entered) return;
       const key = entered.trim();

@@ -1,10 +1,5 @@
 import * as vscode from "vscode";
-import type {
-  DevPulseApi,
-  Finding,
-  FindingStatus,
-  Severity,
-} from "./api";
+import type { DevPulseApi, Finding, FindingStatus, Severity } from "./api";
 
 const SEVERITY_ORDER: Severity[] = ["Critical", "High", "Medium", "Low"];
 
