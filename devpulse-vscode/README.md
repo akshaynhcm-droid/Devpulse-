@@ -7,6 +7,8 @@ DevPulse pairs with your DevPulse dashboard to surface open security
 findings, kill-switch status, and weekly LLM spend right in the activity
 bar and status bar.
 
+![DevPulse findings tree](resources/screenshot-findings-tree.png)
+
 ## Features
 
 - **Findings tree view** grouped by severity (Critical / High / Medium /
@@ -35,7 +37,11 @@ Open findings will populate the **DevPulse** view in the activity bar
 within a few seconds, and the status bar will show
 `DevPulse · N open · $X.XX/wk`.
 
+![DevPulse status bar](resources/screenshot-status-bar.png)
+
 ## Commands
+
+![Command palette](resources/screenshot-command-palette.png)
 
 | Command                              | Description                                              |
 | ------------------------------------ | -------------------------------------------------------- |

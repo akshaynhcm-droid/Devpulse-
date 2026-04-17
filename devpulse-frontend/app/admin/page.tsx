@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { EmptyState } from "@/components/EmptyState";
+import { AdminSignupChart, AdminPlanMixChart } from "@/components/AdminCharts";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -193,6 +194,19 @@ export default function AdminPage() {
                 <p className="text-xs text-gray-500 mt-2">
                   API + DB + queue heartbeat
                 </p>
+              </div>
+            </div>
+
+            <div className="mb-8 grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="lg:col-span-2 bg-gray-800 p-6 rounded-lg border border-gray-700">
+                <h2 className="text-sm text-gray-400 mb-3">
+                  Signups (last 30 days)
+                </h2>
+                <AdminSignupChart users={users} />
+              </div>
+              <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+                <h2 className="text-sm text-gray-400 mb-3">Plan mix</h2>
+                <AdminPlanMixChart users={users} />
               </div>
             </div>
 
