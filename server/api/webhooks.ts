@@ -18,10 +18,40 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import crypto from "crypto";
+import dns from "dns/promises";
 import { nanoid } from "nanoid";
 import { router, protectedProcedure } from "../_core/trpc";
 import * as db from "../db";
 import { deliver, buildSignature, type WebhookEvent } from "../services/webhookDelivery";
+
+/**
+ * Returns true if `ip` is inside one of RFC1918 / link-local / loopback /
+ * unique-local / carrier-grade NAT ranges — i.e. anything we would never
+ * legitimately want to fire a webhook at. Accepts IPv4 and IPv6 literals.
+ *
+ * A literal hostname check catches the obvious case (`localhost`,
+ * `127.0.0.1`), but a determined attacker can register a public hostname
+ * that resolves to a private IP — so we also resolve before trusting the URL.
+ */
+function isPrivateIp(ip: string): boolean {
+  // IPv6 loopback, link-local, unique-local.
+  if (ip === "::1" || ip === "::") return true;
+  if (/^fe[89ab][0-9a-f]:/i.test(ip)) return true; // link-local
+  if (/^f[cd][0-9a-f]{2}:/i.test(ip)) return true; // unique-local
+  // IPv4-mapped IPv6 "::ffff:x.x.x.x" → strip prefix and fall through.
+  const mapped = ip.toLowerCase().match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+  const v4 = mapped ? mapped[1] : ip;
+  if (!/^\d+\.\d+\.\d+\.\d+$/.test(v4)) return false;
+  const [a, b] = v4.split(".").map(Number);
+  if (a === 10) return true; // 10.0.0.0/8
+  if (a === 127) return true; // loopback
+  if (a === 0) return true; // "this network"
+  if (a === 169 && b === 254) return true; // link-local
+  if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
+  if (a === 192 && b === 168) return true; // 192.168.0.0/16
+  if (a === 100 && b >= 64 && b <= 127) return true; // carrier-grade NAT
+  return false;
+}
 
 const SUPPORTED_EVENTS = [
   "scan.complete",
@@ -74,19 +104,32 @@ export const webhooksRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      // Sanity: refuse obvious localhost / private-IP URLs in production so
-      // a compromised account can't use the webhook system as an SSRF
-      // pivot. We still allow them in dev for local testing.
+      // SSRF guard: a compromised account cannot use the webhook system as
+      // an internal-network pivot. We enforce this in two layers because
+      // literal-hostname matching alone can be bypassed by pointing a
+      // public DNS name at a private IP (e.g. `internal.example.com` →
+      // 10.0.0.5).
+      //
+      //   1. Refuse obvious localhost / .local literal hostnames.
+      //   2. Resolve the hostname and refuse if any A/AAAA answer is a
+      //      private/reserved address.
+      //
+      // Dev + test runs are skipped so local webhook receivers still work
+      // during integration tests.
       if (process.env.NODE_ENV === "production") {
         const parsed = new URL(input.url);
+        if (parsed.protocol !== "https:") {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Webhook URLs must use HTTPS in production.",
+          });
+        }
+        const hostname = parsed.hostname.toLowerCase();
         if (
-          parsed.hostname === "localhost" ||
-          parsed.hostname === "127.0.0.1" ||
-          parsed.hostname.endsWith(".local") ||
-          /^10\./.test(parsed.hostname) ||
-          /^192\.168\./.test(parsed.hostname) ||
-          /^169\.254\./.test(parsed.hostname) ||
-          /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(parsed.hostname)
+          hostname === "localhost" ||
+          hostname.endsWith(".local") ||
+          hostname.endsWith(".internal") ||
+          isPrivateIp(hostname)
         ) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -94,10 +137,25 @@ export const webhooksRouter = router({
               "Webhook URL may not target localhost or a private network address.",
           });
         }
-        if (parsed.protocol !== "https:") {
+        try {
+          const addrs = await dns.lookup(hostname, { all: true });
+          for (const addr of addrs) {
+            if (isPrivateIp(addr.address)) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message:
+                  "Webhook hostname resolves to a private network address.",
+              });
+            }
+          }
+        } catch (err) {
+          if (err instanceof TRPCError) throw err;
+          // DNS failure — refuse the endpoint; better UX than a silent
+          // "registered but never delivers" state.
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "Webhook URLs must use HTTPS in production.",
+            message:
+              "Could not resolve the webhook hostname. Check the URL and try again.",
           });
         }
       }

@@ -238,6 +238,20 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
 
+  // ── Trust the first hop reverse proxy in production ──────────────────────
+  // Rate-limiting and cookie security flags depend on the real client IP,
+  // not the proxy's IP. Setting `trust proxy = 1` tells Express to read
+  // `X-Forwarded-For` for one hop (Railway, Cloudflare Tunnel, Fly's proxy,
+  // etc.). Setting it higher would let spoofed `X-Forwarded-For` headers
+  // bypass our rate limits, so we keep it tight.
+  if (ENV.isProduction) {
+    app.set("trust proxy", 1);
+  }
+
+  // ── Remove the default `X-Powered-By: Express` fingerprint header ────────
+  // No functional purpose, just tells attackers exactly what stack to target.
+  app.disable("x-powered-by");
+
   // ── Security headers (helmet.js) ───────────────────────────────────────────
   // Generate nonce for inline scripts
   app.use((req, res, next) => {
@@ -271,8 +285,49 @@ async function startServer() {
       hsts: ENV.isProduction
         ? { maxAge: 31536000, includeSubDomains: true, preload: true }
         : false,
+      // Modern isolation headers. Prevents our origin from being
+      // coerced into cross-origin popup attacks and leaks timing info
+      // across origins. Helmet disables these by default because they
+      // can break third-party embeds — we don't embed so it's safe.
+      crossOriginEmbedderPolicy: ENV.isProduction
+        ? { policy: "require-corp" }
+        : false,
+      crossOriginOpenerPolicy: ENV.isProduction
+        ? { policy: "same-origin" }
+        : false,
+      crossOriginResourcePolicy: ENV.isProduction
+        ? { policy: "same-site" }
+        : false,
+      referrerPolicy: { policy: "strict-origin-when-cross-origin" },
     })
   );
+
+  // ── Permissions-Policy (browser feature lockdown) ─────────────────────────
+  // Tells browsers to never grant our pages dangerous capabilities (camera,
+  // mic, geolocation, payments API, etc.) even if something injected tries
+  // to use them. This is a defense-in-depth layer on top of CSP.
+  if (ENV.isProduction) {
+    app.use((_req, res, next) => {
+      res.setHeader(
+        "Permissions-Policy",
+        [
+          "accelerometer=()",
+          "camera=()",
+          "geolocation=()",
+          "gyroscope=()",
+          "magnetometer=()",
+          "microphone=()",
+          "payment=()",
+          "usb=()",
+          "interest-cohort=()", // Disable FLoC / Topics API tracking
+        ].join(", ")
+      );
+      // Make sure caches + CDN intermediaries can't serve authenticated
+      // tRPC responses to unauthenticated callers.
+      res.setHeader("Vary", "Cookie, Authorization, Origin");
+      next();
+    });
+  }
 
   // ── Response compression (gzip + brotli when supported by the client) ─────
   // Skip compression for tiny responses and for SSE/streaming endpoints so
