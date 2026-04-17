@@ -5,8 +5,14 @@
 
 import { Server as HttpServer } from "http";
 import { Server as SocketIOServer, Socket } from "socket.io";
+import { verifyWebSocketAuth } from "./utils/security";
+import * as db from "./db";
 
-type EventType = "cost_update" | "kill_switch" | "scan_complete" | "security_event";
+type EventType =
+  | "cost_update"
+  | "kill_switch"
+  | "scan_complete"
+  | "security_event";
 
 interface BroadcastMessage {
   type: EventType;
@@ -28,23 +34,40 @@ class WebSocketManager {
     });
 
     this.io.on("connection", (socket: Socket) => {
-      socket.on("authenticate", (userId: number) => {
-        if (!this.connectedUsers.has(userId)) {
-          this.connectedUsers.set(userId, new Set());
+      // Authenticate against the session cookie rather than client-supplied userId
+      // so clients cannot spoof another user's id.
+      socket.on(
+        "authenticate",
+        async (_payload, ack?: (resp: unknown) => void) => {
+          const auth = await verifyWebSocketAuth(socket, db);
+          if (!auth) {
+            ack?.({ success: false, error: "Not authenticated" });
+            socket.disconnect(true);
+            return;
+          }
+          const userId = auth.userId;
+          if (!this.connectedUsers.has(userId)) {
+            this.connectedUsers.set(userId, new Set());
+          }
+          this.connectedUsers.get(userId)!.add(socket.id);
+          socket.join(`user:${userId}`);
+          console.log(`[WebSocket] User ${userId} connected: ${socket.id}`);
+          ack?.({ success: true, userId });
         }
-        this.connectedUsers.get(userId)!.add(socket.id);
-        socket.join(`user:${userId}`);
-        console.log(`[WebSocket] User ${userId} connected: ${socket.id}`);
-      });
+      );
 
       socket.on("disconnect", () => {
-        for (const [userId, socketIds] of Array.from(this.connectedUsers.entries())) {
+        for (const [userId, socketIds] of Array.from(
+          this.connectedUsers.entries()
+        )) {
           if (socketIds.has(socket.id)) {
             socketIds.delete(socket.id);
             if (socketIds.size === 0) {
               this.connectedUsers.delete(userId);
             }
-            console.log(`[WebSocket] User ${userId} disconnected: ${socket.id}`);
+            console.log(
+              `[WebSocket] User ${userId} disconnected: ${socket.id}`
+            );
             break;
           }
         }
@@ -67,10 +90,21 @@ class WebSocketManager {
   }
 
   // Convenience methods for common events
-  broadcastCostUpdate(userId: number, cost: number, model: string, anomaly: boolean) {
+  broadcastCostUpdate(
+    userId: number,
+    cost: number,
+    model: string,
+    anomaly: boolean
+  ) {
     this.broadcast({
       type: "cost_update",
-      data: { userId, cost, model, anomaly, timestamp: new Date().toISOString() },
+      data: {
+        userId,
+        cost,
+        model,
+        anomaly,
+        timestamp: new Date().toISOString(),
+      },
     });
   }
 
@@ -81,32 +115,59 @@ class WebSocketManager {
     });
   }
 
-  broadcastScanStarted(userId: number, data: { scanId: string; collectionId: string }) {
+  broadcastScanStarted(
+    userId: number,
+    data: { scanId: string; collectionId: string }
+  ) {
     this.broadcast({
       type: "scan_complete", // Using scan_complete type with status 'started'
-      data: { ...data, userId, status: "started", timestamp: new Date().toISOString() },
+      data: {
+        ...data,
+        userId,
+        status: "started",
+        timestamp: new Date().toISOString(),
+      },
       userId,
     });
   }
 
-  broadcastScanComplete(userId: number, data: {
-    scanId: string;
-    collectionId: string;
-    findingsCount: number;
-    criticalCount: number;
-    highCount: number;
-  }) {
+  broadcastScanComplete(
+    userId: number,
+    data: {
+      scanId: string;
+      collectionId: string;
+      findingsCount: number;
+      criticalCount: number;
+      highCount: number;
+    }
+  ) {
     this.broadcast({
       type: "scan_complete",
-      data: { ...data, userId, status: "completed", timestamp: new Date().toISOString() },
+      data: {
+        ...data,
+        userId,
+        status: "completed",
+        timestamp: new Date().toISOString(),
+      },
       userId,
     });
   }
 
-  broadcastSecurityEvent(userId: number, eventType: string, severity: string, details: string) {
+  broadcastSecurityEvent(
+    userId: number,
+    eventType: string,
+    severity: string,
+    details: string
+  ) {
     this.broadcast({
       type: "security_event",
-      data: { userId, eventType, severity, details, timestamp: new Date().toISOString() },
+      data: {
+        userId,
+        eventType,
+        severity,
+        details,
+        timestamp: new Date().toISOString(),
+      },
     });
   }
 }

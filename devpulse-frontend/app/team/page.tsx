@@ -41,7 +41,9 @@ export default function TeamPage() {
 
   const handleRemove = async (memberId: string) => {
     try {
-      const res = await fetch(`${API_BASE}/team/${memberId}`, { method: "DELETE" });
+      const res = await fetch(`${API_BASE}/team/${memberId}`, {
+        method: "DELETE",
+      });
       if (res.ok) fetchMembers();
     } catch (err) {
       console.error("Failed to remove:", err);
@@ -73,7 +75,7 @@ export default function TeamPage() {
               <input
                 type="email"
                 value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
+                onChange={e => setInviteEmail(e.target.value)}
                 placeholder="colleague@company.com"
                 className="w-full px-4 py-2 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-blue-500 outline-none"
               />
@@ -82,7 +84,7 @@ export default function TeamPage() {
               <label className="block text-sm text-gray-400 mb-1">Role</label>
               <select
                 value={inviteRole}
-                onChange={(e) => setInviteRole(e.target.value)}
+                onChange={e => setInviteRole(e.target.value)}
                 className="w-full px-4 py-2 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-blue-500 outline-none"
               >
                 <option value="viewer">Viewer</option>
@@ -104,26 +106,39 @@ export default function TeamPage() {
           {loading ? (
             <p className="text-gray-400">Loading...</p>
           ) : members.length === 0 ? (
-            <p className="text-gray-500 text-center py-12">No team members yet.</p>
+            <p className="text-gray-500 text-center py-12">
+              No team members yet.
+            </p>
           ) : (
             <div className="space-y-3">
               {members.map((member: any) => (
-                <div key={member.id} className="bg-gray-800 p-4 rounded-lg border border-gray-700 flex justify-between items-center">
+                <div
+                  key={member.id}
+                  className="bg-gray-800 p-4 rounded-lg border border-gray-700 flex justify-between items-center"
+                >
                   <div>
                     <p className="font-semibold">{member.email}</p>
                     <div className="flex gap-4 mt-1 text-sm">
-                      <span className={`px-2 py-1 rounded ${
-                        member.role === "admin" ? "bg-purple-900/30 text-purple-400" :
-                        member.role === "editor" ? "bg-blue-900/30 text-blue-400" :
-                        "bg-gray-700 text-gray-400"
-                      }`}>
+                      <span
+                        className={`px-2 py-1 rounded ${
+                          member.role === "admin"
+                            ? "bg-purple-900/30 text-purple-400"
+                            : member.role === "editor"
+                              ? "bg-blue-900/30 text-blue-400"
+                              : "bg-gray-700 text-gray-400"
+                        }`}
+                      >
                         {member.role.toUpperCase()}
                       </span>
-                      <span className={`px-2 py-1 rounded ${
-                        member.status === "active" ? "bg-green-900/30 text-green-400" :
-                        member.status === "pending" ? "bg-yellow-900/30 text-yellow-400" :
-                        "bg-gray-700 text-gray-400"
-                      }`}>
+                      <span
+                        className={`px-2 py-1 rounded ${
+                          member.status === "active"
+                            ? "bg-green-900/30 text-green-400"
+                            : member.status === "pending"
+                              ? "bg-yellow-900/30 text-yellow-400"
+                              : "bg-gray-700 text-gray-400"
+                        }`}
+                      >
                         {member.status.toUpperCase()}
                       </span>
                     </div>

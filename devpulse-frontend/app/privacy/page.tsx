@@ -15,7 +15,9 @@ export default function PrivacyPolicy() {
               1. Information We Collect
             </h2>
             <ul className="list-disc list-inside space-y-2">
-              <li>Account information (email, name) provided during registration</li>
+              <li>
+                Account information (email, name) provided during registration
+              </li>
               <li>API collection data you import for security scanning</li>
               <li>Usage metrics (token consumption, model usage, costs)</li>
               <li>Security scan results and findings</li>
@@ -27,9 +29,14 @@ export default function PrivacyPolicy() {
               2. How We Use Your Information
             </h2>
             <ul className="list-disc list-inside space-y-2">
-              <li>To provide and improve our security scanning and monitoring services</li>
+              <li>
+                To provide and improve our security scanning and monitoring
+                services
+              </li>
               <li>To track and report on AI agent costs and usage</li>
-              <li>To detect anomalies and alert you to potential security issues</li>
+              <li>
+                To detect anomalies and alert you to potential security issues
+              </li>
               <li>To process payments and manage subscriptions</li>
             </ul>
           </section>
@@ -39,10 +46,10 @@ export default function PrivacyPolicy() {
               3. Data Storage and Security
             </h2>
             <p>
-              Your data is stored using industry-standard encryption at rest and in
-              transit. We use TLS 1.3 for all communications and AES-256 for
-              data at rest. Database access is restricted to authorized personnel
-              only, with full audit logging.
+              Your data is stored using industry-standard encryption at rest and
+              in transit. We use TLS 1.3 for all communications and AES-256 for
+              data at rest. Database access is restricted to authorized
+              personnel only, with full audit logging.
             </p>
           </section>
 
@@ -87,7 +94,10 @@ export default function PrivacyPolicy() {
             <h2 className="text-2xl font-bold text-white mb-4">7. Contact</h2>
             <p>
               For privacy-related inquiries, contact us at{" "}
-              <a href="mailto:privacy@devpulse.io" className="text-blue-400 hover:text-blue-300">
+              <a
+                href="mailto:privacy@devpulse.io"
+                className="text-blue-400 hover:text-blue-300"
+              >
                 privacy@devpulse.io
               </a>
             </p>

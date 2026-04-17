@@ -82,32 +82,54 @@ export default function LandingPage() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 pb-24">
-        <h2 className="text-3xl font-bold text-center mb-8">Simple, Transparent Pricing</h2>
+        <h2 className="text-3xl font-bold text-center mb-8">
+          Simple, Transparent Pricing
+        </h2>
         <div className="grid md:grid-cols-3 gap-6">
           <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
             <h3 className="text-xl font-bold mb-2">Free</h3>
-            <p className="text-3xl font-bold mb-4">₹0<span className="text-sm text-gray-400">/mo</span></p>
-            <p className="text-gray-400 text-sm">3 collections, basic scanning, 1 team member</p>
+            <p className="text-3xl font-bold mb-4">
+              ₹0<span className="text-sm text-gray-400">/mo</span>
+            </p>
+            <p className="text-gray-400 text-sm">
+              3 collections, basic scanning, 1 team member
+            </p>
           </div>
           <div className="bg-slate-800 p-6 rounded-xl border border-blue-500">
             <h3 className="text-xl font-bold mb-2 text-blue-400">Pro</h3>
-            <p className="text-3xl font-bold mb-4">₹999<span className="text-sm text-gray-400">/mo</span></p>
-            <p className="text-gray-400 text-sm">Unlimited collections, full scanning, 10 team members</p>
+            <p className="text-3xl font-bold mb-4">
+              ₹999<span className="text-sm text-gray-400">/mo</span>
+            </p>
+            <p className="text-gray-400 text-sm">
+              Unlimited collections, full scanning, 10 team members
+            </p>
           </div>
           <div className="bg-slate-800 p-6 rounded-xl border border-purple-500">
-            <h3 className="text-xl font-bold mb-2 text-purple-400">Enterprise</h3>
-            <p className="text-3xl font-bold mb-4">₹4,999<span className="text-sm text-gray-400">/mo</span></p>
-            <p className="text-gray-400 text-sm">Everything in Pro + SSO, SLA, dedicated support</p>
+            <h3 className="text-xl font-bold mb-2 text-purple-400">
+              Enterprise
+            </h3>
+            <p className="text-3xl font-bold mb-4">
+              ₹4,999<span className="text-sm text-gray-400">/mo</span>
+            </p>
+            <p className="text-gray-400 text-sm">
+              Everything in Pro + SSO, SLA, dedicated support
+            </p>
           </div>
         </div>
       </div>
 
       <footer className="border-t border-slate-800 py-8 text-center text-gray-500">
         <div className="space-x-4 mb-4">
-          <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
-          <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+          <Link href="/terms" className="hover:text-white transition-colors">
+            Terms
+          </Link>
+          <Link href="/privacy" className="hover:text-white transition-colors">
+            Privacy
+          </Link>
         </div>
-        <p>&copy; {new Date().getFullYear()} DevPulse Inc. All rights reserved.</p>
+        <p>
+          &copy; {new Date().getFullYear()} DevPulse Inc. All rights reserved.
+        </p>
       </footer>
     </div>
   );

@@ -61,10 +61,16 @@ export const paymentsRouter = router({
     .mutation(async ({ input, ctx }) => {
       const subscription = await db.getSubscriptionByUserId(ctx.user.id);
       if (!subscription?.razorpaySubscriptionId) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "No active subscription found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "No active subscription found",
+        });
       }
 
-      const result = await cancelSubscription(subscription.razorpaySubscriptionId, !input.immediately);
+      const result = await cancelSubscription(
+        subscription.razorpaySubscriptionId,
+        !input.immediately
+      );
 
       await db.updateSubscriptionStatus(
         subscription.id,
@@ -80,48 +86,49 @@ export const paymentsRouter = router({
       return { success: true, status: result.status };
     }),
 
-  getInvoices: protectedProcedure
-    .query(async ({ ctx }) => {
-      const subscription = await db.getSubscriptionByUserId(ctx.user.id);
-      if (!subscription?.razorpaySubscriptionId) {
-        return { invoices: [] };
+  getInvoices: protectedProcedure.query(async ({ ctx }) => {
+    const subscription = await db.getSubscriptionByUserId(ctx.user.id);
+    if (!subscription?.razorpaySubscriptionId) {
+      return { invoices: [] };
+    }
+
+    const invoices = await getSubscriptionInvoices(
+      subscription.razorpaySubscriptionId
+    );
+
+    for (const invoice of invoices) {
+      if (invoice.payment_id && invoice.amount) {
+        await db.createPayment({
+          id: nanoid(),
+          userId: ctx.user.id,
+          subscriptionId: subscription.id,
+          razorpayPaymentId: invoice.payment_id,
+          razorpayOrderId: invoice.order_id,
+          amount: invoice.amount / 100,
+          currency: invoice.currency || "INR",
+          status: invoice.status === "paid" ? "captured" : "created",
+          receipt: invoice.receipt_number,
+          description: invoice.description,
+          createdAt: new Date(invoice.date * 1000),
+        });
       }
+    }
 
-      const invoices = await getSubscriptionInvoices(subscription.razorpaySubscriptionId);
+    const payments = await db.getPaymentsByUserId(ctx.user.id);
 
-      for (const invoice of invoices) {
-        if (invoice.payment_id && invoice.amount) {
-          await db.createPayment({
-            id: nanoid(),
-            userId: ctx.user.id,
-            subscriptionId: subscription.id,
-            razorpayPaymentId: invoice.payment_id,
-            razorpayOrderId: invoice.order_id,
-            amount: invoice.amount / 100,
-            currency: invoice.currency || "INR",
-            status: invoice.status === "paid" ? "captured" : "created",
-            receipt: invoice.receipt_number,
-            description: invoice.description,
-            createdAt: new Date(invoice.date * 1000),
-          });
-        }
-      }
-
-      const payments = await db.getPaymentsByUserId(ctx.user.id);
-
-      return {
-        invoices: payments.map(p => ({
-          id: p.id,
-          razorpayPaymentId: p.razorpayPaymentId,
-          amount: p.amount,
-          currency: p.currency,
-          status: p.status,
-          receipt: p.receipt,
-          description: p.description,
-          createdAt: p.createdAt,
-        })),
-      };
-    }),
+    return {
+      invoices: payments.map(p => ({
+        id: p.id,
+        razorpayPaymentId: p.razorpayPaymentId,
+        amount: p.amount,
+        currency: p.currency,
+        status: p.status,
+        receipt: p.receipt,
+        description: p.description,
+        createdAt: p.createdAt,
+      })),
+    };
+  }),
 
   handleWebhook: publicProcedure
     .input(z.any())
@@ -130,7 +137,10 @@ export const paymentsRouter = router({
       const payload = JSON.stringify(input);
 
       if (!verifyWebhookSignature(payload, signature)) {
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid webhook signature" });
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Invalid webhook signature",
+        });
       }
 
       const event = handleWebhookEvent(input as RazorpayWebhookPayload);
@@ -138,7 +148,9 @@ export const paymentsRouter = router({
       switch (event.event) {
         case "subscription.activated":
           if (event.subscriptionId) {
-            const sub = await db.getSubscriptionByRazorpayId(event.subscriptionId);
+            const sub = await db.getSubscriptionByRazorpayId(
+              event.subscriptionId
+            );
             if (sub) {
               await db.updateSubscriptionStatus(sub.id, "active");
               await db.updateUserPlan(sub.userId, sub.plan);
@@ -149,7 +161,9 @@ export const paymentsRouter = router({
         case "subscription.charged":
           if (event.data.payload.payment?.entity) {
             const payment = event.data.payload.payment.entity;
-            const sub = await db.getSubscriptionByRazorpayId(payment.subscription_id);
+            const sub = await db.getSubscriptionByRazorpayId(
+              payment.subscription_id
+            );
             if (sub) {
               await db.createPayment({
                 id: nanoid(),
@@ -168,7 +182,9 @@ export const paymentsRouter = router({
 
         case "subscription.cancelled":
           if (event.subscriptionId) {
-            const sub = await db.getSubscriptionByRazorpayId(event.subscriptionId);
+            const sub = await db.getSubscriptionByRazorpayId(
+              event.subscriptionId
+            );
             if (sub) {
               await db.updateSubscriptionStatus(sub.id, "cancelled");
               await db.updateUserPlan(sub.userId, "free");
@@ -180,7 +196,9 @@ export const paymentsRouter = router({
         case "payment.failed":
           if (event.data.payload.payment?.entity) {
             const payment = event.data.payload.payment.entity;
-            const sub = await db.getSubscriptionByRazorpayId(payment.subscription_id);
+            const sub = await db.getSubscriptionByRazorpayId(
+              payment.subscription_id
+            );
             if (sub) {
               await db.updateSubscriptionStatus(sub.id, "past_due");
             }
@@ -190,7 +208,11 @@ export const paymentsRouter = router({
         case "refund.processed":
           if (event.data.payload.refund?.entity) {
             const refund = event.data.payload.refund.entity;
-            await db.updatePaymentRefundStatus(refund.payment_id, refund.amount / 100, "full");
+            await db.updatePaymentRefundStatus(
+              refund.payment_id,
+              refund.amount / 100,
+              "full"
+            );
           }
           break;
       }

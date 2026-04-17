@@ -2,7 +2,13 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Eye, Zap, CheckCircle2, AlertTriangle, ShieldAlert } from "lucide-react";
+import {
+  Eye,
+  Zap,
+  CheckCircle2,
+  AlertTriangle,
+  ShieldAlert,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 
@@ -14,7 +20,11 @@ export default function ShadowAPIs() {
   const collectionId = params.get("collection") || "";
 
   const { data: collections } = trpc.collections.list.useQuery();
-  const { data: shadowData, isLoading, refetch } = trpc.shadowAPI.listShadowAPIs.useQuery(
+  const {
+    data: shadowData,
+    isLoading,
+    refetch,
+  } = trpc.shadowAPI.listShadowAPIs.useQuery(
     { collectionId },
     { enabled: !!collectionId }
   );
@@ -29,7 +39,9 @@ export default function ShadowAPIs() {
     }
     try {
       const result = await scanMutation.mutateAsync({ collectionId });
-      toast.success(`Shadow API scan complete — ${result.totalFound} APIs detected`);
+      toast.success(
+        `Shadow API scan complete — ${result.totalFound} APIs detected`
+      );
       refetch();
     } catch {
       toast.error("Failed to run shadow API scan");
@@ -50,7 +62,8 @@ export default function ShadowAPIs() {
     const map: Record<RiskLevel, string> = {
       CRITICAL: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
       HIGH: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
-      MEDIUM: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
+      MEDIUM:
+        "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
       LOW: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
     };
     return map[level] ?? "bg-gray-100 text-gray-800";
@@ -76,19 +89,26 @@ export default function ShadowAPIs() {
     <div className="space-y-8">
       {/* Header */}
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-foreground">Shadow API Detection</h1>
+        <h1 className="text-3xl font-bold text-foreground">
+          Shadow API Detection
+        </h1>
         <p className="text-muted-foreground">
-          Discover undocumented, hidden, and risky API endpoints in your collections
+          Discover undocumented, hidden, and risky API endpoints in your
+          collections
         </p>
       </div>
 
       {/* Collection Selector & Scan */}
       <Card className="p-6 space-y-4">
         <div className="space-y-3">
-          <label className="text-sm font-medium text-foreground block">Select Collection</label>
+          <label className="text-sm font-medium text-foreground block">
+            Select Collection
+          </label>
           <select
             value={collectionId}
-            onChange={e => navigate(`/shadow-apis?collection=${e.target.value}`)}
+            onChange={e =>
+              navigate(`/shadow-apis?collection=${e.target.value}`)
+            }
             className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground"
           >
             <option value="">Choose a collection...</option>
@@ -107,7 +127,9 @@ export default function ShadowAPIs() {
             className="w-full"
           >
             <Eye className="w-4 h-4 mr-2" />
-            {scanMutation.isPending ? "Scanning for Shadow APIs..." : "Run Shadow API Scan"}
+            {scanMutation.isPending
+              ? "Scanning for Shadow APIs..."
+              : "Run Shadow API Scan"}
           </Button>
         )}
       </Card>
@@ -116,19 +138,35 @@ export default function ShadowAPIs() {
       {collectionId && summaryStats.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="p-5 space-y-2 border-l-4 border-l-red-500">
-            <p className="text-sm font-medium text-muted-foreground">Critical / High Risk</p>
-            <p className="text-3xl font-bold text-foreground">{critical + high}</p>
-            <p className="text-xs text-muted-foreground">Require immediate attention</p>
+            <p className="text-sm font-medium text-muted-foreground">
+              Critical / High Risk
+            </p>
+            <p className="text-3xl font-bold text-foreground">
+              {critical + high}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Require immediate attention
+            </p>
           </Card>
           <Card className="p-5 space-y-2 border-l-4 border-l-orange-500">
-            <p className="text-sm font-medium text-muted-foreground">Undocumented APIs</p>
+            <p className="text-sm font-medium text-muted-foreground">
+              Undocumented APIs
+            </p>
             <p className="text-3xl font-bold text-foreground">{undocumented}</p>
-            <p className="text-xs text-muted-foreground">Not in official spec</p>
+            <p className="text-xs text-muted-foreground">
+              Not in official spec
+            </p>
           </Card>
           <Card className="p-5 space-y-2 border-l-4 border-l-accent">
-            <p className="text-sm font-medium text-muted-foreground">Total Detected</p>
-            <p className="text-3xl font-bold text-foreground">{summaryStats.length}</p>
-            <p className="text-xs text-muted-foreground">Shadow API endpoints found</p>
+            <p className="text-sm font-medium text-muted-foreground">
+              Total Detected
+            </p>
+            <p className="text-3xl font-bold text-foreground">
+              {summaryStats.length}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Shadow API endpoints found
+            </p>
           </Card>
         </div>
       )}
@@ -136,17 +174,22 @@ export default function ShadowAPIs() {
       {/* Results */}
       {collectionId && (
         <div className="space-y-4">
-          <h2 className="text-xl font-bold text-foreground">Detected Shadow APIs</h2>
+          <h2 className="text-xl font-bold text-foreground">
+            Detected Shadow APIs
+          </h2>
 
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Scanning for shadow APIs...</div>
+            <div className="text-center py-8 text-muted-foreground">
+              Scanning for shadow APIs...
+            </div>
           ) : summaryStats.length > 0 ? (
             <div className="space-y-3">
               {summaryStats.map(api => (
                 <Card key={api.id} className="p-5 space-y-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3 flex-1">
-                      {api.riskLevel === "CRITICAL" || api.riskLevel === "HIGH" ? (
+                      {api.riskLevel === "CRITICAL" ||
+                      api.riskLevel === "HIGH" ? (
                         <ShieldAlert className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                       ) : (
                         <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
@@ -167,12 +210,14 @@ export default function ShadowAPIs() {
 
                         {api.reason && (
                           <p className="text-sm text-muted-foreground mt-2">
-                            <span className="font-medium">Issue:</span> {api.reason}
+                            <span className="font-medium">Issue:</span>{" "}
+                            {api.reason}
                           </p>
                         )}
                         {api.recommendation && (
                           <p className="text-sm text-muted-foreground mt-1">
-                            <span className="font-medium">Recommendation:</span> {api.recommendation}
+                            <span className="font-medium">Recommendation:</span>{" "}
+                            {api.recommendation}
                           </p>
                         )}
                       </div>
@@ -212,7 +257,9 @@ export default function ShadowAPIs() {
             <Card className="p-12 text-center space-y-4">
               <Eye className="w-12 h-12 text-muted-foreground mx-auto" />
               <div>
-                <p className="font-medium text-foreground">No shadow APIs detected yet</p>
+                <p className="font-medium text-foreground">
+                  No shadow APIs detected yet
+                </p>
                 <p className="text-sm text-muted-foreground mt-1">
                   Click "Run Shadow API Scan" to discover undocumented endpoints
                 </p>
@@ -229,9 +276,10 @@ export default function ShadowAPIs() {
           What are Shadow APIs?
         </h3>
         <p className="text-sm text-blue-800 dark:text-blue-400">
-          Shadow APIs are endpoints that exist in your codebase or collections but are not
-          officially documented in your API specification. They may include debug endpoints,
-          internal APIs, legacy routes, or admin endpoints — all of which can be security risks.
+          Shadow APIs are endpoints that exist in your codebase or collections
+          but are not officially documented in your API specification. They may
+          include debug endpoints, internal APIs, legacy routes, or admin
+          endpoints — all of which can be security risks.
         </p>
       </Card>
     </div>

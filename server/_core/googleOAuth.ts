@@ -43,7 +43,8 @@ export function registerGoogleOAuthRoutes(app: Express) {
   app.get("/api/oauth/google", (req: Request, res: Response) => {
     if (!isGoogleConfigured()) {
       res.status(503).json({
-        error: "Google OAuth is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
+        error:
+          "Google OAuth is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
       });
       return;
     }
@@ -81,12 +82,16 @@ export function registerGoogleOAuthRoutes(app: Express) {
     }
 
     if (!code) {
-      res.status(400).json({ error: "Authorization code missing from Google callback" });
+      res
+        .status(400)
+        .json({ error: "Authorization code missing from Google callback" });
       return;
     }
 
     if (!isGoogleConfigured()) {
-      res.status(503).json({ error: "Google OAuth is not configured on the server." });
+      res
+        .status(503)
+        .json({ error: "Google OAuth is not configured on the server." });
       return;
     }
 
@@ -95,7 +100,10 @@ export function registerGoogleOAuthRoutes(app: Express) {
       const redirectUri = getRedirectUri(req);
 
       // Exchange code for tokens
-      const { tokens } = await client.getToken({ code, redirect_uri: redirectUri });
+      const { tokens } = await client.getToken({
+        code,
+        redirect_uri: redirectUri,
+      });
       client.setCredentials(tokens);
 
       // Verify the ID token and extract user info
@@ -115,7 +123,8 @@ export function registerGoogleOAuthRoutes(app: Express) {
 
       // Use Google's `sub` (subject) as the stable openId
       const openId = `google:${payload.sub}`;
-      const name = payload.name ?? payload.email?.split("@")[0] ?? "Google User";
+      const name =
+        payload.name ?? payload.email?.split("@")[0] ?? "Google User";
       const email = payload.email ?? null;
 
       // Upsert the user in our DB
@@ -134,7 +143,10 @@ export function registerGoogleOAuthRoutes(app: Express) {
       });
 
       const cookieOptions = getSessionCookieOptions(req);
-      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+      res.cookie(COOKIE_NAME, sessionToken, {
+        ...cookieOptions,
+        maxAge: ONE_YEAR_MS,
+      });
 
       console.log(`[Google OAuth] User signed in: ${email ?? openId}`);
       res.redirect(302, "/");

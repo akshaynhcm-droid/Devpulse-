@@ -13,7 +13,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Users, Trash2, UserPlus, Shield, Edit2, Mail, RefreshCw } from "lucide-react";
+import {
+  Users,
+  Trash2,
+  UserPlus,
+  Shield,
+  Edit2,
+  Mail,
+  RefreshCw,
+} from "lucide-react";
 import { toast } from "sonner";
 
 type Role = "admin" | "editor" | "viewer";
@@ -21,7 +29,8 @@ type Role = "admin" | "editor" | "viewer";
 const roleColors: Record<Role, string> = {
   admin: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
   editor: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-  viewer: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+  viewer:
+    "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
 };
 
 const roleDescriptions: Record<Role, string> = {
@@ -63,7 +72,11 @@ export default function Team() {
       setInviteEmail("");
       refetch();
     } catch (error: any) {
-      toast.error(error?.message?.includes("already") ? "An invitation was already sent to this email." : "Failed to send invitation");
+      toast.error(
+        error?.message?.includes("already")
+          ? "An invitation was already sent to this email."
+          : "Failed to send invitation"
+      );
     }
   };
 
@@ -112,7 +125,9 @@ export default function Team() {
 
       {/* Invite Section */}
       <Card className="p-6 space-y-4">
-        <h2 className="text-lg font-semibold text-foreground">Invite Team Member</h2>
+        <h2 className="text-lg font-semibold text-foreground">
+          Invite Team Member
+        </h2>
 
         <div className="space-y-4">
           <div>
@@ -123,9 +138,9 @@ export default function Team() {
               type="email"
               placeholder="colleague@company.com"
               value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
+              onChange={e => setInviteEmail(e.target.value)}
               disabled={inviteMutation.isPending}
-              onKeyDown={(e) => e.key === "Enter" && handleInvite()}
+              onKeyDown={e => e.key === "Enter" && handleInvite()}
             />
           </div>
 
@@ -134,19 +149,26 @@ export default function Team() {
               Role
             </label>
             <div className="space-y-2">
-              {(["admin", "editor", "viewer"] as Role[]).map((role) => (
-                <label key={role} className="flex items-start gap-3 cursor-pointer p-3 rounded-lg hover:bg-muted transition-colors">
+              {(["admin", "editor", "viewer"] as Role[]).map(role => (
+                <label
+                  key={role}
+                  className="flex items-start gap-3 cursor-pointer p-3 rounded-lg hover:bg-muted transition-colors"
+                >
                   <input
                     type="radio"
                     value={role}
                     checked={selectedRole === role}
-                    onChange={(e) => setSelectedRole(e.target.value as Role)}
+                    onChange={e => setSelectedRole(e.target.value as Role)}
                     disabled={inviteMutation.isPending}
                     className="w-4 h-4 mt-0.5"
                   />
                   <div className="flex-1">
-                    <p className="font-medium text-foreground capitalize">{role}</p>
-                    <p className="text-xs text-muted-foreground">{roleDescriptions[role]}</p>
+                    <p className="font-medium text-foreground capitalize">
+                      {role}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {roleDescriptions[role]}
+                    </p>
                   </div>
                 </label>
               ))}
@@ -174,14 +196,16 @@ export default function Team() {
 
         {team?.members && team.members.length > 0 ? (
           <div className="space-y-2">
-            {team.members.map((member) => (
+            {team.members.map(member => (
               <Card
                 key={member.id}
                 className="p-4 flex items-center justify-between hover:shadow-md transition-shadow"
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="font-medium text-foreground">{member.email}</p>
+                    <p className="font-medium text-foreground">
+                      {member.email}
+                    </p>
                     {member.status === "pending" && (
                       <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
                         Pending
@@ -192,11 +216,13 @@ export default function Team() {
                     {editingMemberId === member.id ? (
                       <select
                         value={editingRole}
-                        onChange={(e) => setEditingRole(e.target.value as Role)}
+                        onChange={e => setEditingRole(e.target.value as Role)}
                         className="text-xs px-2 py-1 rounded border border-border bg-background text-foreground"
                       >
-                        {(["admin", "editor", "viewer"] as Role[]).map((role) => (
-                          <option key={role} value={role}>{role}</option>
+                        {(["admin", "editor", "viewer"] as Role[]).map(role => (
+                          <option key={role} value={role}>
+                            {role}
+                          </option>
                         ))}
                       </select>
                     ) : (
@@ -235,7 +261,9 @@ export default function Team() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => handleResendInvite(member.id, member.email)}
+                          onClick={() =>
+                            handleResendInvite(member.id, member.email)
+                          }
                           disabled={resendInviteMutation.isPending}
                           title="Resend invitation email"
                         >
@@ -274,7 +302,9 @@ export default function Team() {
         ) : (
           <Card className="p-8 text-center">
             <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">No team members yet. Invite someone to get started.</p>
+            <p className="text-muted-foreground">
+              No team members yet. Invite someone to get started.
+            </p>
           </Card>
         )}
       </div>
@@ -289,9 +319,19 @@ export default function Team() {
           </h3>
           <div className="space-y-3">
             {pendingInvites.invitations.map((inv: any) => (
-              <div key={inv.id} className="flex items-center justify-between p-3 rounded-lg border bg-background">
+              <div
+                key={inv.id}
+                className="flex items-center justify-between p-3 rounded-lg border bg-background"
+              >
                 <div>
-                  <p className="text-sm font-medium">Invited as <span className={`px-2 py-0.5 rounded text-xs ${roleColors[inv.role as Role]}`}>{inv.role}</span></p>
+                  <p className="text-sm font-medium">
+                    Invited as{" "}
+                    <span
+                      className={`px-2 py-0.5 rounded text-xs ${roleColors[inv.role as Role]}`}
+                    >
+                      {inv.role}
+                    </span>
+                  </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Received {new Date(inv.invitedAt).toLocaleDateString()}
                   </p>
@@ -305,7 +345,9 @@ export default function Team() {
                         toast.success("Invitation accepted!");
                         refetch();
                       } catch (err: any) {
-                        toast.error(err.message || "Failed to accept invitation");
+                        toast.error(
+                          err.message || "Failed to accept invitation"
+                        );
                       }
                     }}
                     disabled={acceptMutation.isPending}
@@ -322,7 +364,9 @@ export default function Team() {
                         toast.success("Invitation rejected");
                         refetch();
                       } catch (err: any) {
-                        toast.error(err.message || "Failed to reject invitation");
+                        toast.error(
+                          err.message || "Failed to reject invitation"
+                        );
                       }
                     }}
                     disabled={rejectMutation.isPending}
@@ -339,7 +383,7 @@ export default function Team() {
       <Card className="p-6 space-y-4 bg-muted/50">
         <h3 className="font-semibold text-foreground">Role Permissions</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {(["admin", "editor", "viewer"] as Role[]).map((role) => (
+          {(["admin", "editor", "viewer"] as Role[]).map(role => (
             <div key={role} className="space-y-2">
               <p className="font-medium text-foreground capitalize">{role}</p>
               <ul className="text-xs text-muted-foreground space-y-1">
@@ -374,13 +418,17 @@ export default function Team() {
       </Card>
 
       {/* Remove Confirmation Dialog */}
-      <AlertDialog open={!!removeDialogId} onOpenChange={(open) => !open && setRemoveDialogId(null)}>
+      <AlertDialog
+        open={!!removeDialogId}
+        onOpenChange={open => !open && setRemoveDialogId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Team Member?</AlertDialogTitle>
             <AlertDialogDescription>
-              Remove <strong>{removeDialogEmail}</strong> from your workspace? They will lose access
-              immediately. You can re-invite them later if needed.
+              Remove <strong>{removeDialogEmail}</strong> from your workspace?
+              They will lose access immediately. You can re-invite them later if
+              needed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

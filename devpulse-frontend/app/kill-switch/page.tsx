@@ -16,7 +16,7 @@ export default function KillSwitchPage() {
     try {
       const [statusRes, logsRes] = await Promise.all([
         fetch(`${API_BASE}/kill-switch/status`),
-        fetch(`${API_BASE}/kill-switch/logs`)
+        fetch(`${API_BASE}/kill-switch/logs`),
       ]);
       setStatus(await statusRes.json());
       setLogs((await logsRes.json()).logs || []);
@@ -66,7 +66,7 @@ export default function KillSwitchPage() {
     try {
       const res = await fetch(`${API_BASE}/kill-switch/reset`, {
         method: "POST",
-        headers: { Content-Type: application/json },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reason: resetReason }),
       });
       if (res.ok) {
@@ -88,7 +88,9 @@ export default function KillSwitchPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-blue-400">Kill Switch</h1>
-            <p className="text-gray-400 mt-1">Budget management and LLM operation control</p>
+            <p className="text-gray-400 mt-1">
+              Budget management and LLM operation control
+            </p>
           </div>
           <Link href="/dashboard" className="text-blue-400 hover:text-blue-300">
             &larr; Dashboard
@@ -101,14 +103,18 @@ export default function KillSwitchPage() {
           <div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
-                <h2 className="text-xl font-semibold mb-4">Budget Configuration</h2>
+                <h2 className="text-xl font-semibold mb-4">
+                  Budget Configuration
+                </h2>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm text-gray-400 mb-1">Monthly Budget Limit ($)</label>
+                    <label className="block text-sm text-gray-400 mb-1">
+                      Monthly Budget Limit ($)
+                    </label>
                     <input
                       type="number"
                       value={budgetInput}
-                      onChange={(e) => setBudgetInput(e.target.value)}
+                      onChange={e => setBudgetInput(e.target.value)}
                       placeholder="1000.00"
                       className="w-full px-4 py-2 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-blue-500 outline-none"
                     />
@@ -122,16 +128,22 @@ export default function KillSwitchPage() {
                 </div>
               </div>
 
-              <div className={`p-6 rounded-lg border ${status?.status?.is_active ? "bg-red-900/30 border-red-500" : "bg-gray-800 border-gray-700"}`}>
+              <div
+                className={`p-6 rounded-lg border ${status?.status?.is_active ? "bg-red-900/30 border-red-500" : "bg-gray-800 border-gray-700"}`}
+              >
                 <h2 className="text-xl font-semibold mb-4">Status</h2>
                 <div className="flex items-center gap-4 mb-4">
-                  <div className={`w-3 h-3 rounded-full ${status?.status?.is_active ? "bg-red-500" : "bg-green-500"}`}></div>
+                  <div
+                    className={`w-3 h-3 rounded-full ${status?.status?.is_active ? "bg-red-500" : "bg-green-500"}`}
+                  ></div>
                   <span className="text-lg font-bold">
                     {status?.status?.is_active ? "ACTIVE" : "INACTIVE"}
                   </span>
                 </div>
                 {status?.status?.is_active && status?.status?.last_reason && (
-                  <p className="text-gray-300 text-sm">Reason: {status.status.last_reason}</p>
+                  <p className="text-gray-300 text-sm">
+                    Reason: {status.status.last_reason}
+                  </p>
                 )}
                 {status?.budget && (
                   <div className="text-sm text-gray-400 mt-2">
@@ -142,13 +154,17 @@ export default function KillSwitchPage() {
             </div>
 
             <div className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">Kill Switch Actions</h2>
+              <h2 className="text-xl font-semibold mb-4">
+                Kill Switch Actions
+              </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Trigger Kill Switch</label>
+                  <label className="block text-sm text-gray-400 mb-1">
+                    Trigger Kill Switch
+                  </label>
                   <textarea
                     value={triggerReason}
-                    onChange={(e) => setTriggerReason(e.target.value)}
+                    onChange={e => setTriggerReason(e.target.value)}
                     placeholder="Describe why you are triggering the kill switch..."
                     className="w-full px-4 py-2 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-blue-500 outline-none"
                     rows={3}
@@ -161,10 +177,12 @@ export default function KillSwitchPage() {
                   </button>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">Reset Kill Switch</label>
+                  <label className="block text-sm text-gray-400 mb-1">
+                    Reset Kill Switch
+                  </label>
                   <textarea
                     value={resetReason}
-                    onChange={(e) => setResetReason(e.target.value)}
+                    onChange={e => setResetReason(e.target.value)}
                     placeholder="Describe why you are resetting the kill switch..."
                     className="w-full px-4 py-2 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-blue-500 outline-none"
                     rows={3}
@@ -186,15 +204,25 @@ export default function KillSwitchPage() {
               ) : (
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {logs.map((log: any) => (
-                    <div key={log.id} className="bg-gray-800 p-3 rounded-lg border border-gray-700">
+                    <div
+                      key={log.id}
+                      className="bg-gray-800 p-3 rounded-lg border border-gray-700"
+                    >
                       <div className="flex justify-between items-center mb-1">
-                        <span className={`text-sm font-bold ${
-                          log.action === "triggered" ? "text-red-400" :
-                          log.action === "reset" ? "text-green-400" : "text-blue-400"
-                        }`}>
+                        <span
+                          className={`text-sm font-bold ${
+                            log.action === "triggered"
+                              ? "text-red-400"
+                              : log.action === "reset"
+                                ? "text-green-400"
+                                : "text-blue-400"
+                          }`}
+                        >
                           {log.action.toUpperCase()}
                         </span>
-                        <span className="text-xs text-gray-500">{log.created_at}</span>
+                        <span className="text-xs text-gray-500">
+                          {log.created_at}
+                        </span>
                       </div>
                       <p className="text-sm text-gray-300">{log.reason}</p>
                     </div>

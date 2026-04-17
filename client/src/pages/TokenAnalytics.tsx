@@ -1,7 +1,21 @@
 import { trpc } from "@/lib/trpc";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
 import { Download, TrendingUp } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -10,17 +24,26 @@ const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
 export default function TokenAnalytics() {
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
-  const { data: analytics, isLoading } = trpc.tokenAnalytics.getAnalytics.useQuery({ days: 30 });
-  const { data: modelBreakdown } = trpc.tokenAnalytics.getModelBreakdown.useQuery(
-    { model: selectedModel || "" },
-    { enabled: !!selectedModel }
-  );
+  const { data: analytics, isLoading } =
+    trpc.tokenAnalytics.getAnalytics.useQuery({ days: 30 });
+  const { data: modelBreakdown } =
+    trpc.tokenAnalytics.getModelBreakdown.useQuery(
+      { model: selectedModel || "" },
+      { enabled: !!selectedModel }
+    );
 
   const handleExport = () => {
     if (!analytics) return;
 
     const csv = [
-      ["Model", "Prompt Tokens", "Completion Tokens", "Thinking Tokens", "Total Tokens", "Cost (USD)"],
+      [
+        "Model",
+        "Prompt Tokens",
+        "Completion Tokens",
+        "Thinking Tokens",
+        "Total Tokens",
+        "Cost (USD)",
+      ],
       ...analytics.byModel.map((m: any) => [
         m.model,
         m.promptTokens,
@@ -30,7 +53,7 @@ export default function TokenAnalytics() {
         m.costUSD.toFixed(2),
       ]),
     ]
-      .map((row) => row.join(","))
+      .map(row => row.join(","))
       .join("\n");
 
     const blob = new Blob([csv], { type: "text/csv" });
@@ -43,14 +66,20 @@ export default function TokenAnalytics() {
   };
 
   if (isLoading) {
-    return <div className="text-center py-12 text-muted-foreground">Loading analytics...</div>;
+    return (
+      <div className="text-center py-12 text-muted-foreground">
+        Loading analytics...
+      </div>
+    );
   }
 
   return (
     <div className="space-y-8">
       {/* Header */}
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-foreground">LLM Token Analytics</h1>
+        <h1 className="text-3xl font-bold text-foreground">
+          LLM Token Analytics
+        </h1>
         <p className="text-muted-foreground">
           Track token usage and costs across your AI models
         </p>
@@ -59,7 +88,9 @@ export default function TokenAnalytics() {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="p-6 space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">Total Tokens (30 days)</p>
+          <p className="text-sm font-medium text-muted-foreground">
+            Total Tokens (30 days)
+          </p>
           <p className="text-3xl font-bold text-foreground">
             {analytics?.totalTokens.toLocaleString() || 0}
           </p>
@@ -67,7 +98,9 @@ export default function TokenAnalytics() {
         </Card>
 
         <Card className="p-6 space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">Total Cost</p>
+          <p className="text-sm font-medium text-muted-foreground">
+            Total Cost
+          </p>
           <p className="text-3xl font-bold text-foreground">
             ${analytics?.totalCost.toFixed(2) || "0.00"}
           </p>
@@ -75,7 +108,9 @@ export default function TokenAnalytics() {
         </Card>
 
         <Card className="p-6 space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">Models Tracked</p>
+          <p className="text-sm font-medium text-muted-foreground">
+            Models Tracked
+          </p>
           <p className="text-3xl font-bold text-foreground">
             {analytics?.byModel.length || 0}
           </p>
@@ -87,7 +122,9 @@ export default function TokenAnalytics() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Token Usage by Model */}
         <Card className="p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-foreground">Token Usage by Model</h2>
+          <h2 className="text-lg font-semibold text-foreground">
+            Token Usage by Model
+          </h2>
           {analytics?.byModel && analytics.byModel.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={analytics.byModel}>
@@ -101,9 +138,24 @@ export default function TokenAnalytics() {
                   }}
                 />
                 <Legend />
-                <Bar dataKey="promptTokens" stackId="a" fill="#3b82f6" name="Prompt" />
-                <Bar dataKey="completionTokens" stackId="a" fill="#10b981" name="Completion" />
-                <Bar dataKey="thinkingTokens" stackId="a" fill="#f59e0b" name="Thinking" />
+                <Bar
+                  dataKey="promptTokens"
+                  stackId="a"
+                  fill="#3b82f6"
+                  name="Prompt"
+                />
+                <Bar
+                  dataKey="completionTokens"
+                  stackId="a"
+                  fill="#10b981"
+                  name="Completion"
+                />
+                <Bar
+                  dataKey="thinkingTokens"
+                  stackId="a"
+                  fill="#f59e0b"
+                  name="Thinking"
+                />
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -115,7 +167,9 @@ export default function TokenAnalytics() {
 
         {/* Cost Breakdown */}
         <Card className="p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-foreground">Cost Breakdown by Model</h2>
+          <h2 className="text-lg font-semibold text-foreground">
+            Cost Breakdown by Model
+          </h2>
           {analytics?.byModel && analytics.byModel.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
@@ -129,7 +183,10 @@ export default function TokenAnalytics() {
                   label
                 >
                   {analytics.byModel.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
                   ))}
                 </Pie>
                 <Tooltip
@@ -151,7 +208,9 @@ export default function TokenAnalytics() {
 
       {/* Usage Trend */}
       <Card className="p-6 space-y-4">
-        <h2 className="text-lg font-semibold text-foreground">Usage Trend (30 days)</h2>
+        <h2 className="text-lg font-semibold text-foreground">
+          Usage Trend (30 days)
+        </h2>
         {analytics?.usage && analytics.usage.length > 0 ? (
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={analytics.usage}>
@@ -159,10 +218,14 @@ export default function TokenAnalytics() {
               <XAxis
                 dataKey="date"
                 stroke="var(--muted-foreground)"
-                tickFormatter={(date) => new Date(date).toLocaleDateString()}
+                tickFormatter={date => new Date(date).toLocaleDateString()}
               />
               <YAxis yAxisId="left" stroke="var(--muted-foreground)" />
-              <YAxis yAxisId="right" orientation="right" stroke="var(--muted-foreground)" />
+              <YAxis
+                yAxisId="right"
+                orientation="right"
+                stroke="var(--muted-foreground)"
+              />
               <Tooltip
                 contentStyle={{
                   backgroundColor: "var(--card)",
@@ -219,8 +282,12 @@ export default function TokenAnalytics() {
               >
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-foreground">{model.model}</h3>
-                    <span className="text-lg font-bold text-accent">${model.costUSD.toFixed(2)}</span>
+                    <h3 className="font-semibold text-foreground">
+                      {model.model}
+                    </h3>
+                    <span className="text-lg font-bold text-accent">
+                      ${model.costUSD.toFixed(2)}
+                    </span>
                   </div>
 
                   <div className="grid grid-cols-3 gap-4 text-center">
@@ -231,7 +298,9 @@ export default function TokenAnalytics() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Completion</p>
+                      <p className="text-xs text-muted-foreground">
+                        Completion
+                      </p>
                       <p className="text-sm font-semibold text-foreground">
                         {model.completionTokens.toLocaleString()}
                       </p>
@@ -245,7 +314,9 @@ export default function TokenAnalytics() {
                   </div>
 
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Total: {model.totalTokens.toLocaleString()} tokens</span>
+                    <span>
+                      Total: {model.totalTokens.toLocaleString()} tokens
+                    </span>
                     <TrendingUp className="w-4 h-4" />
                   </div>
                 </div>
@@ -254,7 +325,9 @@ export default function TokenAnalytics() {
           </div>
         ) : (
           <Card className="p-8 text-center">
-            <p className="text-muted-foreground">No token usage data available yet.</p>
+            <p className="text-muted-foreground">
+              No token usage data available yet.
+            </p>
           </Card>
         )}
       </div>

@@ -5,7 +5,7 @@ const isProduction = process.env.NODE_ENV === "production";
 export const logger = pino({
   level: process.env.LOG_LEVEL || (isProduction ? "info" : "debug"),
   formatters: {
-    level: (label) => ({ level: label }),
+    level: label => ({ level: label }),
   },
   timestamp: pino.stdTimeFunctions.isoTime,
   transport: isProduction
@@ -19,7 +19,16 @@ export const logger = pino({
         },
       },
   redact: {
-    paths: ["password", "*.password", "token", "*.token", "secret", "*.secret", "apiKey", "*.apiKey"],
+    paths: [
+      "password",
+      "*.password",
+      "token",
+      "*.token",
+      "secret",
+      "*.secret",
+      "apiKey",
+      "*.apiKey",
+    ],
     remove: true,
   },
 });
@@ -28,7 +37,7 @@ export const logger = pino({
 export function createRequestLogger() {
   return (req: any, res: any, next: any) => {
     const start = Date.now();
-    
+
     res.on("finish", () => {
       const duration = Date.now() - start;
       const logData = {
@@ -61,9 +70,12 @@ export function logBusinessEvent(
   userId: number,
   metadata?: Record<string, any>
 ) {
-  logger.info({
-    event,
-    userId,
-    ...metadata,
-  }, `Business event: ${event}`);
+  logger.info(
+    {
+      event,
+      userId,
+      ...metadata,
+    },
+    `Business event: ${event}`
+  );
 }

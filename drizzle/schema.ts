@@ -29,6 +29,9 @@ export const users = mysqlTable(
     plan: mysqlEnum("plan", ["free", "pro", "enterprise"])
       .default("free")
       .notNull(),
+    passwordHash: varchar("passwordHash", { length: 512 }),
+    apiKey: varchar("apiKey", { length: 64 }),
+    scansRemaining: int("scansRemaining").default(10).notNull(),
     onboardingCompleted: boolean("onboardingCompleted")
       .default(false)
       .notNull(),
@@ -40,11 +43,34 @@ export const users = mysqlTable(
   },
   table => ({
     emailIdx: index("email_idx").on(table.email),
+    apiKeyIdx: index("apiKey_idx").on(table.apiKey),
   })
 );
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
+
+/**
+ * VS Code extension activity tracking.
+ */
+export const vscodeActivities = mysqlTable(
+  "vscode_activities",
+  {
+    id: varchar("id", { length: 64 }).primaryKey(),
+    userId: int("userId").notNull(),
+    type: varchar("type", { length: 32 }).notNull(),
+    data: json("data"),
+    timestamp: timestamp("timestamp").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => ({
+    userIdIdx: index("userId_idx").on(table.userId),
+    timestampIdx: index("timestamp_idx").on(table.timestamp),
+  })
+);
+
+export type VscodeActivity = typeof vscodeActivities.$inferSelect;
+export type InsertVscodeActivity = typeof vscodeActivities.$inferInsert;
 
 /**
  * API Collections - stores imported Postman/OpenAPI collections
@@ -381,6 +407,7 @@ export const subscriptions = mysqlTable(
       "cancelled",
       "past_due",
       "pending",
+      "halted",
     ])
       .default("pending")
       .notNull(),

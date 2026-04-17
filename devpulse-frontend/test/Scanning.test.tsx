@@ -17,7 +17,7 @@ function Scanning() {
 
     // Simulate progress
     const interval = setInterval(() => {
-      setProgress((p) => {
+      setProgress(p => {
         if (p >= 100) {
           clearInterval(interval);
           return 100;
@@ -35,11 +35,7 @@ function Scanning() {
   return (
     <div data-testid="scanning-page">
       <h1>Security Scan</h1>
-      <button
-        onClick={triggerScan}
-        disabled={scanning}
-        data-testid="scan-btn"
-      >
+      <button onClick={triggerScan} disabled={scanning} data-testid="scan-btn">
         {scanning ? "Scanning..." : "Start Scan"}
       </button>
 
@@ -119,8 +115,14 @@ describe("Scanning", () => {
       expect(screen.getByTestId("results")).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId("risk-score")).toHaveTextContent("Risk Score: 75");
-    expect(screen.getByTestId("findings-count")).toHaveTextContent("Findings: 3");
-    expect(screen.getByTestId("finding-0")).toHaveTextContent("Missing Auth - high");
+    expect(screen.getByTestId("risk-score")).toHaveTextContent(
+      "Risk Score: 75"
+    );
+    expect(screen.getByTestId("findings-count")).toHaveTextContent(
+      "Findings: 3"
+    );
+    expect(screen.getByTestId("finding-0")).toHaveTextContent(
+      "Missing Auth - high"
+    );
   });
 });

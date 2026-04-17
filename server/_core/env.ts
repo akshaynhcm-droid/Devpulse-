@@ -21,7 +21,8 @@ export const ENV = {
   isProduction: process.env.NODE_ENV === "production",
 
   // LLM / Forge API
-  forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "https://api.manus.app/forge",
+  forgeApiUrl:
+    process.env.BUILT_IN_FORGE_API_URL ?? "https://api.manus.app/forge",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
   minimaxApiKey: process.env.MINIMAX_API_KEY ?? "",
   minimaxApiUrl: process.env.MINIMAX_API_URL ?? "https://api.minimax.io/v1",
@@ -57,30 +58,57 @@ export const ENV = {
  * Validate critical environment variables at startup.
  * Throws in production if required vars are missing; warns in development.
  */
-export function validateEnv(): { valid: boolean; warnings: string[]; errors: string[] } {
+export function validateEnv(): {
+  valid: boolean;
+  warnings: string[];
+  errors: string[];
+} {
   const errors: string[] = [];
   const warnings: string[] = [];
 
   // CRITICAL — must always be set
-  if (!ENV.cookieSecret) errors.push("JWT_SECRET is not set — authentication will not work");
-  if (!ENV.databaseUrl) errors.push("DATABASE_URL is not set — database connection will fail");
+  if (!ENV.cookieSecret)
+    errors.push("JWT_SECRET is not set — authentication will not work");
+  if (!ENV.databaseUrl)
+    errors.push("DATABASE_URL is not set — database connection will fail");
 
   // Production-only critical checks
   if (ENV.isProduction) {
-    if (!ENV.googleClientId) errors.push("GOOGLE_CLIENT_ID is not set — OAuth login will fail");
-    if (!ENV.googleClientSecret) errors.push("GOOGLE_CLIENT_SECRET is not set — OAuth login will fail");
-    if (!ENV.razorpayKeyId) errors.push("RAZORPAY_KEY_ID is not set — payments will not work");
-    if (!ENV.razorpayKeySecret) errors.push("RAZORPAY_KEY_SECRET is not set — payments will not work");
-    if (!ENV.razorpayWebhookSecret) errors.push("RAZORPAY_WEBHOOK_SECRET is not set — webhook verification will fail");
-    if (!ENV.smtpHost) warnings.push("SMTP_HOST is not set — team invite emails will not be sent");
-    if (!ENV.sentryDsn) warnings.push("SENTRY_DSN is not set — error monitoring disabled");
+    if (!ENV.googleClientId)
+      errors.push("GOOGLE_CLIENT_ID is not set — OAuth login will fail");
+    if (!ENV.googleClientSecret)
+      errors.push("GOOGLE_CLIENT_SECRET is not set — OAuth login will fail");
+    if (!ENV.razorpayKeyId)
+      errors.push("RAZORPAY_KEY_ID is not set — payments will not work");
+    if (!ENV.razorpayKeySecret)
+      errors.push("RAZORPAY_KEY_SECRET is not set — payments will not work");
+    if (!ENV.razorpayWebhookSecret)
+      errors.push(
+        "RAZORPAY_WEBHOOK_SECRET is not set — webhook verification will fail"
+      );
+    if (!ENV.smtpHost)
+      warnings.push(
+        "SMTP_HOST is not set — team invite emails will not be sent"
+      );
+    if (!ENV.sentryDsn)
+      warnings.push("SENTRY_DSN is not set — error monitoring disabled");
   }
 
   // Non-critical warnings
-  if (!ENV.slackWebhookUrl) warnings.push("SLACK_WEBHOOK_URL is not set — kill switch alerts will not be sent to Slack");
-  if (!ENV.smtpHost) warnings.push("SMTP_HOST is not set — email features (team invites) disabled");
-  if (!ENV.razorpayKeyId) warnings.push("RAZORPAY_KEY_ID is not set — payment features disabled");
-  if (!ENV.githubWebhookSecret) warnings.push("GITHUB_WEBHOOK_SECRET is not set — GitHub webhook integration disabled");
+  if (!ENV.slackWebhookUrl)
+    warnings.push(
+      "SLACK_WEBHOOK_URL is not set — kill switch alerts will not be sent to Slack"
+    );
+  if (!ENV.smtpHost)
+    warnings.push(
+      "SMTP_HOST is not set — email features (team invites) disabled"
+    );
+  if (!ENV.razorpayKeyId)
+    warnings.push("RAZORPAY_KEY_ID is not set — payment features disabled");
+  if (!ENV.githubWebhookSecret)
+    warnings.push(
+      "GITHUB_WEBHOOK_SECRET is not set — GitHub webhook integration disabled"
+    );
 
   // Log warnings
   for (const w of warnings) console.warn(`[ENV] ⚠ ${w}`);
@@ -88,12 +116,15 @@ export function validateEnv(): { valid: boolean; warnings: string[]; errors: str
   // In production, throw on errors
   if (ENV.isProduction && errors.length > 0) {
     for (const e of errors) console.error(`[ENV] ✖ ${e}`);
-    throw new Error(`Missing critical environment variables:\n${errors.map(e => `  - ${e}`).join("\n")}`);
+    throw new Error(
+      `Missing critical environment variables:\n${errors.map(e => `  - ${e}`).join("\n")}`
+    );
   }
 
   // In development, just warn
   if (!ENV.isProduction && errors.length > 0) {
-    for (const e of errors) console.warn(`[ENV] ⚠ ${e} (would be fatal in production)`);
+    for (const e of errors)
+      console.warn(`[ENV] ⚠ ${e} (would be fatal in production)`);
   }
 
   return { valid: errors.length === 0, warnings, errors };

@@ -13,7 +13,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { AlertTriangle, Zap, Clock, DollarSign, ShieldCheck, RotateCcw } from "lucide-react";
+import {
+  AlertTriangle,
+  Zap,
+  Clock,
+  DollarSign,
+  ShieldCheck,
+  RotateCcw,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export default function KillSwitch() {
@@ -23,15 +30,21 @@ export default function KillSwitch() {
   const [showTriggerDialog, setShowTriggerDialog] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
 
-  const { data: settings, refetch: refetchSettings } = trpc.killSwitch.getSettings.useQuery();
-  const { data: auditTrail, refetch: refetchAudit } = trpc.killSwitch.getAuditTrail.useQuery();
+  const { data: settings, refetch: refetchSettings } =
+    trpc.killSwitch.getSettings.useQuery();
+  const { data: auditTrail, refetch: refetchAudit } =
+    trpc.killSwitch.getAuditTrail.useQuery();
 
   const setBudgetMutation = trpc.killSwitch.setBudget.useMutation();
   const triggerMutation = trpc.killSwitch.trigger.useMutation();
   const resetMutation = trpc.killSwitch.reset.useMutation();
 
   const handleSetBudget = async () => {
-    if (!budgetInput || isNaN(parseFloat(budgetInput)) || parseFloat(budgetInput) <= 0) {
+    if (
+      !budgetInput ||
+      isNaN(parseFloat(budgetInput)) ||
+      parseFloat(budgetInput) <= 0
+    ) {
       toast.error("Please enter a valid positive budget amount");
       return;
     }
@@ -57,7 +70,9 @@ export default function KillSwitch() {
 
     try {
       await triggerMutation.mutateAsync({ reason: triggerReason });
-      toast.success("Kill switch triggered! All LLM operations are now blocked.");
+      toast.success(
+        "Kill switch triggered! All LLM operations are now blocked."
+      );
       setTriggerReason("");
       setShowTriggerDialog(false);
       refetchSettings();
@@ -91,11 +106,16 @@ export default function KillSwitch() {
 
   const getEventLabel = (eventType: string) => {
     switch (eventType) {
-      case "budget_set": return "Budget Updated";
-      case "triggered": return "Kill Switch Triggered";
-      case "auto_triggered": return "Auto-Triggered (Budget Exceeded)";
-      case "reset": return "Kill Switch Reset";
-      default: return eventType;
+      case "budget_set":
+        return "Budget Updated";
+      case "triggered":
+        return "Kill Switch Triggered";
+      case "auto_triggered":
+        return "Auto-Triggered (Budget Exceeded)";
+      case "reset":
+        return "Kill Switch Reset";
+      default:
+        return eventType;
     }
   };
 
@@ -103,7 +123,9 @@ export default function KillSwitch() {
     <div className="space-y-8">
       {/* Header */}
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-foreground">Autonomous Agent Kill Switch</h1>
+        <h1 className="text-3xl font-bold text-foreground">
+          Autonomous Agent Kill Switch
+        </h1>
         <p className="text-muted-foreground">
           Manage LLM spending limits and emergency controls
         </p>
@@ -111,10 +133,14 @@ export default function KillSwitch() {
 
       {/* Budget Status */}
       {settings && (
-        <Card className={`p-8 space-y-6 border-2 ${settings.isActive ? "border-destructive/50 bg-destructive/5" : "border-accent/20"}`}>
+        <Card
+          className={`p-8 space-y-6 border-2 ${settings.isActive ? "border-destructive/50 bg-destructive/5" : "border-accent/20"}`}
+        >
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-foreground">Budget Status</h2>
+              <h2 className="text-xl font-semibold text-foreground">
+                Budget Status
+              </h2>
               {settings.isActive ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-destructive text-destructive-foreground">
                   <Zap className="w-3 h-3" />
@@ -130,14 +156,18 @@ export default function KillSwitch() {
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-foreground">Current Spending</span>
+                <span className="text-sm font-medium text-foreground">
+                  Current Spending
+                </span>
                 <span className="text-2xl font-bold text-foreground">
                   ${settings.currentSpendUSD.toFixed(2)}
                 </span>
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-foreground">Budget Limit</span>
+                <span className="text-sm font-medium text-foreground">
+                  Budget Limit
+                </span>
                 <span className="text-2xl font-bold text-accent">
                   ${settings.budgetLimitUSD.toFixed(2)}
                 </span>
@@ -145,7 +175,9 @@ export default function KillSwitch() {
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-muted-foreground">Usage</span>
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Usage
+                  </span>
                   <span className="text-xs font-medium text-muted-foreground">
                     {spendPercentage.toFixed(1)}%
                   </span>
@@ -190,7 +222,9 @@ export default function KillSwitch() {
 
       {/* Budget Configuration */}
       <Card className="p-6 space-y-4">
-        <h2 className="text-lg font-semibold text-foreground">Set Budget Limit</h2>
+        <h2 className="text-lg font-semibold text-foreground">
+          Set Budget Limit
+        </h2>
         <div className="space-y-3">
           <div>
             <label className="text-sm font-medium text-foreground mb-2 block">
@@ -203,7 +237,7 @@ export default function KillSwitch() {
                   type="number"
                   placeholder="100.00"
                   value={budgetInput}
-                  onChange={(e) => setBudgetInput(e.target.value)}
+                  onChange={e => setBudgetInput(e.target.value)}
                   className="pl-8"
                   min="0.01"
                   step="0.01"
@@ -222,9 +256,12 @@ export default function KillSwitch() {
 
       {/* Emergency Trigger */}
       <Card className="p-6 space-y-4 border-2 border-destructive/20">
-        <h2 className="text-lg font-semibold text-foreground">Emergency Controls</h2>
+        <h2 className="text-lg font-semibold text-foreground">
+          Emergency Controls
+        </h2>
         <p className="text-sm text-muted-foreground">
-          Immediately stop all LLM operations. This action is logged and fully auditable.
+          Immediately stop all LLM operations. This action is logged and fully
+          auditable.
         </p>
         <div className="flex gap-3">
           {!settings?.isActive ? (
@@ -255,12 +292,13 @@ export default function KillSwitch() {
 
         {auditTrail?.events && auditTrail.events.length > 0 ? (
           <div className="space-y-2">
-            {auditTrail.events.map((event) => (
+            {auditTrail.events.map(event => (
               <Card key={event.id} className="p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      {event.eventType === "triggered" || event.eventType === "auto_triggered" ? (
+                      {event.eventType === "triggered" ||
+                      event.eventType === "auto_triggered" ? (
                         <AlertTriangle className="w-5 h-5 text-destructive" />
                       ) : event.eventType === "reset" ? (
                         <RotateCcw className="w-5 h-5 text-green-500" />
@@ -272,21 +310,25 @@ export default function KillSwitch() {
                       </span>
                     </div>
 
-                    {event.budgetLimit !== undefined && event.budgetLimit !== null && (
-                      <p className="text-sm text-muted-foreground">
-                        Budget: ${(event.budgetLimit as number).toFixed(2)}
-                      </p>
-                    )}
+                    {event.budgetLimit !== undefined &&
+                      event.budgetLimit !== null && (
+                        <p className="text-sm text-muted-foreground">
+                          Budget: ${(event.budgetLimit as number).toFixed(2)}
+                        </p>
+                      )}
 
-                    {event.currentSpend !== undefined && event.currentSpend !== null && (
-                      <p className="text-sm text-muted-foreground">
-                        Spend at time: ${(event.currentSpend as number).toFixed(2)}
-                      </p>
-                    )}
+                    {event.currentSpend !== undefined &&
+                      event.currentSpend !== null && (
+                        <p className="text-sm text-muted-foreground">
+                          Spend at time: $
+                          {(event.currentSpend as number).toFixed(2)}
+                        </p>
+                      )}
 
                     {event.reason && (
                       <p className="text-sm text-muted-foreground mt-2">
-                        <span className="font-medium">Reason:</span> {event.reason}
+                        <span className="font-medium">Reason:</span>{" "}
+                        {event.reason}
                       </p>
                     )}
                   </div>
@@ -315,8 +357,9 @@ export default function KillSwitch() {
               Trigger Kill Switch?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              This will immediately block all LLM API calls. The action will be logged and you
-              will need to manually reset the kill switch to resume operations.
+              This will immediately block all LLM API calls. The action will be
+              logged and you will need to manually reset the kill switch to
+              resume operations.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-4">
@@ -326,19 +369,23 @@ export default function KillSwitch() {
             <textarea
               placeholder="Describe why you are triggering the kill switch..."
               value={triggerReason}
-              onChange={(e) => setTriggerReason(e.target.value)}
+              onChange={e => setTriggerReason(e.target.value)}
               className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               rows={3}
             />
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setTriggerReason("")}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setTriggerReason("")}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleTrigger}
               disabled={triggerMutation.isPending || !triggerReason.trim()}
               className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
-              {triggerMutation.isPending ? "Triggering..." : "Yes, Trigger Kill Switch"}
+              {triggerMutation.isPending
+                ? "Triggering..."
+                : "Yes, Trigger Kill Switch"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -353,8 +400,8 @@ export default function KillSwitch() {
               Reset Kill Switch?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              This will re-enable LLM API calls. Make sure you have resolved the issue that
-              caused the kill switch to be triggered.
+              This will re-enable LLM API calls. Make sure you have resolved the
+              issue that caused the kill switch to be triggered.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-4">
@@ -364,13 +411,15 @@ export default function KillSwitch() {
             <textarea
               placeholder="Describe why you are resetting the kill switch..."
               value={resetReason}
-              onChange={(e) => setResetReason(e.target.value)}
+              onChange={e => setResetReason(e.target.value)}
               className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               rows={3}
             />
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setResetReason("")}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setResetReason("")}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleReset}
               disabled={resetMutation.isPending || !resetReason.trim()}

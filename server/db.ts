@@ -19,6 +19,7 @@ import {
   userSessions,
   emailPreferences,
   auditLog,
+  vscodeActivities,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { sendWelcomeEmail } from "./email";
@@ -38,7 +39,9 @@ export async function getDb() {
   return _db;
 }
 
-export async function upsertUser(user: InsertUser): Promise<{ isNew: boolean }> {
+export async function upsertUser(
+  user: InsertUser
+): Promise<{ isNew: boolean }> {
   if (!user.openId) {
     throw new Error("User openId is required for upsert");
   }
@@ -156,7 +159,10 @@ export async function createCollection(
   if (!db) throw new Error("Database not available");
 
   const id = `col_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  const totalRequests = format === "openapi" ? Object.keys(data.paths || {}).length : (data.item?.length || 0);
+  const totalRequests =
+    format === "openapi"
+      ? Object.keys(data.paths || {}).length
+      : data.item?.length || 0;
 
   await db.insert(collections).values({
     id,
@@ -204,7 +210,10 @@ export async function getCollectionsByUserId(userId: number) {
  * 1. Collections owned by the user
  * 2. Collections owned by workspace owners where user is an accepted team member
  */
-export async function getWorkspaceCollections(userId: number, userEmail?: string) {
+export async function getWorkspaceCollections(
+  userId: number,
+  userEmail?: string
+) {
   const db = await getDb();
   if (!db) return [];
 
@@ -245,8 +254,13 @@ export async function getWorkspaceCollections(userId: number, userEmail?: string
     .where(sql`${collections.userId} IN (${ownerIds.join(",")})`)
     .orderBy(desc(collections.createdAt));
 
-  // Combine and deduplicate (in case user owns some and is also team member)
-  const allCollections = [...ownCollections];
+  // Combine and deduplicate (in case user owns some and is also team member).
+  // `isShared` is a view-level annotation, not a column — surface it via an
+  // intersection type so callers can distinguish.
+  type CollectionWithShared = (typeof ownCollections)[number] & {
+    isShared?: boolean;
+  };
+  const allCollections: CollectionWithShared[] = [...ownCollections];
   const seenIds = new Set(ownCollections.map(c => c.id));
 
   for (const collection of sharedCollections) {
@@ -309,7 +323,9 @@ export async function hasCollectionAccess(
   collectionId: string,
   userId: number,
   userEmail?: string
-): Promise<{ access: true; role: string; collection: any } | { access: false }> {
+): Promise<
+  { access: true; role: string; collection: any } | { access: false }
+> {
   const db = await getDb();
   if (!db) return { access: false };
 
@@ -351,7 +367,9 @@ export async function deleteCollection(id: string) {
   await db.delete(findings).where(eq(findings.collectionId, id));
   await db.delete(shadowAPIs).where(eq(shadowAPIs.collectionId, id));
   await db.delete(scans).where(eq(scans.collectionId, id));
-  await db.delete(complianceReports).where(eq(complianceReports.collectionId, id));
+  await db
+    .delete(complianceReports)
+    .where(eq(complianceReports.collectionId, id));
 
   // Finally, delete the collection itself
   await db.delete(collections).where(eq(collections.id, id));
@@ -462,7 +480,11 @@ export async function getFindingById(id: string) {
   const db = await getDb();
   if (!db) return null;
 
-  const result = await db.select().from(findings).where(eq(findings.id, id)).limit(1);
+  const result = await db
+    .select()
+    .from(findings)
+    .where(eq(findings.id, id))
+    .limit(1);
   return result.length > 0 ? result[0] : null;
 }
 
@@ -540,7 +562,11 @@ export async function getShadowAPIById(id: string) {
   const db = await getDb();
   if (!db) return null;
 
-  const result = await db.select().from(shadowAPIs).where(eq(shadowAPIs.id, id)).limit(1);
+  const result = await db
+    .select()
+    .from(shadowAPIs)
+    .where(eq(shadowAPIs.id, id))
+    .limit(1);
   return result.length > 0 ? result[0] : null;
 }
 
@@ -737,9 +763,11 @@ export async function updateKillSwitchSettings(
     });
   } else {
     const updates: any = {};
-    if (budgetLimitUSD !== undefined) updates.budgetLimitUSD = budgetLimitUSD.toString();
+    if (budgetLimitUSD !== undefined)
+      updates.budgetLimitUSD = budgetLimitUSD.toString();
     if (isActive !== undefined) updates.isActive = isActive;
-    if (currentSpendUSD !== undefined) updates.currentSpendUSD = currentSpendUSD.toString();
+    if (currentSpendUSD !== undefined)
+      updates.currentSpendUSD = currentSpendUSD.toString();
 
     if (Object.keys(updates).length > 0) {
       await db
@@ -863,14 +891,22 @@ export async function getTeamMemberById(id: string) {
   return result.length > 0 ? result[0] : null;
 }
 
-export async function getTeamMemberByEmail(userId: number, memberEmail: string) {
+export async function getTeamMemberByEmail(
+  userId: number,
+  memberEmail: string
+) {
   const db = await getDb();
   if (!db) return null;
 
   const result = await db
     .select()
     .from(teamMembers)
-    .where(and(eq(teamMembers.userId, userId), eq(teamMembers.memberEmail, memberEmail)))
+    .where(
+      and(
+        eq(teamMembers.userId, userId),
+        eq(teamMembers.memberEmail, memberEmail)
+      )
+    )
     .limit(1);
   return result.length > 0 ? result[0] : null;
 }
@@ -932,23 +968,42 @@ export async function getOrCreateOnboardingProgress(userId: number) {
     .from(onboardingProgress)
     .where(eq(onboardingProgress.userId, userId))
     .limit(1)
-    .then((r) => r[0]);
+    .then(r => r[0]);
 }
 
 export async function updateOnboardingStep(
   userId: number,
-  step: "importCollection" | "runScan" | "reviewFindings" | "inviteTeam" | "setupCompliance"
+  step:
+    | "importCollection"
+    | "runScan"
+    | "reviewFindings"
+    | "inviteTeam"
+    | "setupCompliance"
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
   const updates: any = {};
 
-  if (step === "importCollection") { updates.importCollectionCompleted = true; updates.currentStep = 2; }
-  if (step === "runScan") { updates.runScanCompleted = true; updates.currentStep = 3; }
-  if (step === "reviewFindings") { updates.reviewFindingsCompleted = true; updates.currentStep = 4; }
-  if (step === "inviteTeam") { updates.inviteTeamCompleted = true; updates.currentStep = 5; }
-  if (step === "setupCompliance") { updates.setupComplianceCompleted = true; }
+  if (step === "importCollection") {
+    updates.importCollectionCompleted = true;
+    updates.currentStep = 2;
+  }
+  if (step === "runScan") {
+    updates.runScanCompleted = true;
+    updates.currentStep = 3;
+  }
+  if (step === "reviewFindings") {
+    updates.reviewFindingsCompleted = true;
+    updates.currentStep = 4;
+  }
+  if (step === "inviteTeam") {
+    updates.inviteTeamCompleted = true;
+    updates.currentStep = 5;
+  }
+  if (step === "setupCompliance") {
+    updates.setupComplianceCompleted = true;
+  }
 
   // Mark completedAt if all steps done
   const progress = await getOrCreateOnboardingProgress(userId);
@@ -990,14 +1045,33 @@ export async function completeOnboarding(userId: number) {
 
 export async function getDashboardMetrics(userId: number) {
   const db = await getDb();
-  if (!db) return { totalCollections: 0, totalFindings: 0, highestRiskScore: 0, teamMembers: 0 };
+  if (!db)
+    return {
+      totalCollections: 0,
+      totalFindings: 0,
+      highestRiskScore: 0,
+      teamMembers: 0,
+    };
 
-  const [collectionsResult, findingsResult, riskResult, teamResult] = await Promise.all([
-    db.select({ count: sql<number>`count(*)` }).from(collections).where(eq(collections.userId, userId)),
-    db.select({ count: sql<number>`count(*)` }).from(findings).where(eq(findings.userId, userId)),
-    db.select({ maxScore: sql<string>`MAX(riskScore)` }).from(scans).where(eq(scans.userId, userId)),
-    db.select({ count: sql<number>`count(*)` }).from(teamMembers).where(eq(teamMembers.userId, userId)),
-  ]);
+  const [collectionsResult, findingsResult, riskResult, teamResult] =
+    await Promise.all([
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(collections)
+        .where(eq(collections.userId, userId)),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(findings)
+        .where(eq(findings.userId, userId)),
+      db
+        .select({ maxScore: sql<string>`MAX(riskScore)` })
+        .from(scans)
+        .where(eq(scans.userId, userId)),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(teamMembers)
+        .where(eq(teamMembers.userId, userId)),
+    ]);
 
   return {
     totalCollections: Number(collectionsResult[0]?.count ?? 0),
@@ -1061,7 +1135,10 @@ export async function getAllUsers() {
 // USER PLAN / SUBSCRIPTION
 // ============================================================================
 
-export async function updateUserPlan(userId: number, plan: "free" | "pro" | "enterprise") {
+export async function updateUserPlan(
+  userId: number,
+  plan: "free" | "pro" | "enterprise"
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -1072,7 +1149,11 @@ export async function getUserPlan(userId: number): Promise<string> {
   const db = await getDb();
   if (!db) return "free";
 
-  const result = await db.select({ plan: users.plan }).from(users).where(eq(users.id, userId)).limit(1);
+  const result = await db
+    .select({ plan: users.plan })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
   return result.length > 0 ? result[0].plan : "free";
 }
 
@@ -1080,13 +1161,17 @@ export async function getUserPlan(userId: number): Promise<string> {
 // TEAM INVITATION ACCEPT / REJECT
 // ============================================================================
 
-export async function acceptTeamInvitation(memberId: string, memberUserId: number) {
+export async function acceptTeamInvitation(
+  memberId: string,
+  memberUserId: number
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
   const member = await getTeamMemberById(memberId);
   if (!member) throw new Error("Invitation not found");
-  if (member.status !== "pending") throw new Error("Invitation is no longer pending");
+  if (member.status !== "pending")
+    throw new Error("Invitation is no longer pending");
 
   await db
     .update(teamMembers)
@@ -1100,7 +1185,8 @@ export async function rejectTeamInvitation(memberId: string) {
 
   const member = await getTeamMemberById(memberId);
   if (!member) throw new Error("Invitation not found");
-  if (member.status !== "pending") throw new Error("Invitation is no longer pending");
+  if (member.status !== "pending")
+    throw new Error("Invitation is no longer pending");
 
   await db
     .update(teamMembers)
@@ -1115,7 +1201,9 @@ export async function getPendingInvitationsForUser(email: string) {
   return await db
     .select()
     .from(teamMembers)
-    .where(and(eq(teamMembers.memberEmail, email), eq(teamMembers.status, "pending")))
+    .where(
+      and(eq(teamMembers.memberEmail, email), eq(teamMembers.status, "pending"))
+    )
     .orderBy(desc(teamMembers.invitedAt));
 }
 
@@ -1123,7 +1211,10 @@ export async function getPendingInvitationsForUser(email: string) {
 // COST ANOMALY DETECTION
 // ============================================================================
 
-export async function detectCostAnomaly(userId: number, threshold: number = 2.0): Promise<{
+export async function detectCostAnomaly(
+  userId: number,
+  threshold: number = 2.0
+): Promise<{
   isAnomaly: boolean;
   currentCost: number;
   averageCost: number;
@@ -1132,16 +1223,25 @@ export async function detectCostAnomaly(userId: number, threshold: number = 2.0)
   const usage = await getTokenUsageByUserId(userId, 30);
 
   if (usage.length < 5) {
-    return { isAnomaly: false, currentCost: 0, averageCost: 0, standardDeviation: 0 };
+    return {
+      isAnomaly: false,
+      currentCost: 0,
+      averageCost: 0,
+      standardDeviation: 0,
+    };
   }
 
   const costs = usage.map(u => parseFloat(u.costUSD as any));
   const currentCost = costs[0] ?? 0;
   const averageCost = costs.reduce((a, b) => a + b, 0) / costs.length;
-  const variance = costs.reduce((sum, c) => sum + Math.pow(c - averageCost, 2), 0) / costs.length;
+  const variance =
+    costs.reduce((sum, c) => sum + Math.pow(c - averageCost, 2), 0) /
+    costs.length;
   const standardDeviation = Math.sqrt(variance);
 
-  const isAnomaly = standardDeviation > 0 && currentCost > averageCost + threshold * standardDeviation;
+  const isAnomaly =
+    standardDeviation > 0 &&
+    currentCost > averageCost + threshold * standardDeviation;
 
   return { isAnomaly, currentCost, averageCost, standardDeviation };
 }
@@ -1150,7 +1250,11 @@ export async function detectCostAnomaly(userId: number, threshold: number = 2.0)
 // PASSWORD RESET TOKENS
 // ============================================================================
 
-export async function createPasswordResetToken(userId: number, token: string, expiresAt: Date) {
+export async function createPasswordResetToken(
+  userId: number,
+  token: string,
+  expiresAt: Date
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -1268,25 +1372,25 @@ export async function revokeUserSession(sessionId: string) {
     .where(eq(userSessions.id, sessionId));
 }
 
-export async function revokeAllUserSessions(userId: number, exceptSessionId?: string) {
+export async function revokeAllUserSessions(
+  userId: number,
+  exceptSessionId?: string
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  let query = db
-    .update(userSessions)
-    .set({ revokedAt: new Date() })
-    .where(
-      and(
-        eq(userSessions.userId, userId),
-        sql`${userSessions.revokedAt} IS NULL`
-      )
-    );
-
+  const conditions = [
+    eq(userSessions.userId, userId),
+    sql`${userSessions.revokedAt} IS NULL`,
+  ];
   if (exceptSessionId) {
-    query = query.where(sql`${userSessions.id} != ${exceptSessionId}`);
+    conditions.push(sql`${userSessions.id} != ${exceptSessionId}`);
   }
 
-  await query;
+  await db
+    .update(userSessions)
+    .set({ revokedAt: new Date() })
+    .where(and(...conditions));
 }
 
 export async function updateSessionLastActive(sessionId: string) {
@@ -1303,9 +1407,7 @@ export async function cleanupExpiredUserSessions() {
   const db = await getDb();
   if (!db) return;
 
-  await db
-    .delete(userSessions)
-    .where(sql`${userSessions.expiresAt} < NOW()`);
+  await db.delete(userSessions).where(sql`${userSessions.expiresAt} < NOW()`);
 }
 
 // ============================================================================
@@ -1440,7 +1542,10 @@ export async function updateUserProfile(
     .where(eq(users.id, userId));
 }
 
-export async function updateUserPassword(userId: number, hashedPassword: string) {
+export async function updateUserPassword(
+  userId: number,
+  hashedPassword: string
+) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -1457,7 +1562,9 @@ export async function updateUserPassword(userId: number, hashedPassword: string)
 // ACCOUNT DELETION - CASCADE DELETE EVERYTHING
 // ============================================================================
 
-export async function deleteUserAccount(userId: number): Promise<{ deleted: boolean; message: string }> {
+export async function deleteUserAccount(
+  userId: number
+): Promise<{ deleted: boolean; message: string }> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -1467,20 +1574,28 @@ export async function deleteUserAccount(userId: number): Promise<{ deleted: bool
     await db.delete(auditLog).where(eq(auditLog.userId, userId));
 
     // 2. Delete password reset tokens
-    await db.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, userId));
+    await db
+      .delete(passwordResetTokens)
+      .where(eq(passwordResetTokens.userId, userId));
 
     // 3. Delete user sessions
     await db.delete(userSessions).where(eq(userSessions.userId, userId));
 
     // 4. Delete email preferences
-    await db.delete(emailPreferences).where(eq(emailPreferences.userId, userId));
+    await db
+      .delete(emailPreferences)
+      .where(eq(emailPreferences.userId, userId));
 
     // 5. Delete token usage
     await db.delete(tokenUsage).where(eq(tokenUsage.userId, userId));
 
     // 6. Delete kill switch events and settings
-    await db.delete(killSwitchEvents).where(eq(killSwitchEvents.userId, userId));
-    await db.delete(killSwitchSettings).where(eq(killSwitchSettings.userId, userId));
+    await db
+      .delete(killSwitchEvents)
+      .where(eq(killSwitchEvents.userId, userId));
+    await db
+      .delete(killSwitchSettings)
+      .where(eq(killSwitchSettings.userId, userId));
 
     // 7. Delete team memberships (both as owner and member)
     await db.delete(teamMembers).where(
@@ -1492,17 +1607,28 @@ export async function deleteUserAccount(userId: number): Promise<{ deleted: bool
     await db.delete(teamMembers).where(eq(teamMembers.memberUserId, userId));
 
     // 8. Delete onboarding progress
-    await db.delete(onboardingProgress).where(eq(onboardingProgress.userId, userId));
+    await db
+      .delete(onboardingProgress)
+      .where(eq(onboardingProgress.userId, userId));
 
     // 9. Delete compliance reports
-    await db.delete(complianceReports).where(eq(complianceReports.userId, userId));
+    await db
+      .delete(complianceReports)
+      .where(eq(complianceReports.userId, userId));
 
     // 10. Delete findings (need to get scan IDs first)
-    const userScans = await db.select({ id: scans.id }).from(scans).where(eq(scans.userId, userId));
+    const userScans = await db
+      .select({ id: scans.id })
+      .from(scans)
+      .where(eq(scans.userId, userId));
     const scanIds = userScans.map(s => s.id);
     if (scanIds.length > 0) {
-      await db.delete(findings).where(sql`${findings.scanId} IN (${scanIds.join(",")})`);
-      await db.delete(shadowAPIs).where(sql`${shadowAPIs.scanId} IN (${scanIds.join(",")})`);
+      await db
+        .delete(findings)
+        .where(sql`${findings.scanId} IN (${scanIds.join(",")})`);
+      await db
+        .delete(shadowAPIs)
+        .where(sql`${shadowAPIs.scanId} IN (${scanIds.join(",")})`);
     }
 
     // 11. Delete scans
@@ -1518,7 +1644,10 @@ export async function deleteUserAccount(userId: number): Promise<{ deleted: bool
     // 14. Finally delete the user
     await db.delete(users).where(eq(users.id, userId));
 
-    return { deleted: true, message: "Account and all associated data deleted successfully" };
+    return {
+      deleted: true,
+      message: "Account and all associated data deleted successfully",
+    };
   } catch (error) {
     console.error("[Database] Account deletion failed:", error);
     throw error;
@@ -1563,7 +1692,12 @@ export async function createSubscription(data: {
     plan: data.plan as "free" | "pro" | "enterprise",
     razorpaySubscriptionId: data.razorpaySubscriptionId,
     razorpayCustomerId: data.razorpayCustomerId,
-    status: data.status as "pending" | "active" | "past_due" | "cancelled" | "halted",
+    status: data.status as
+      | "pending"
+      | "active"
+      | "past_due"
+      | "cancelled"
+      | "halted",
   });
 
   return data;
@@ -1613,7 +1747,10 @@ export async function updateSubscriptionStatus(
     .where(eq(subscriptions.id, id));
 }
 
-export async function updateUserSubscriptionId(userId: number, subscriptionId: string | null) {
+export async function updateUserSubscriptionId(
+  userId: number,
+  subscriptionId: string | null
+) {
   // Subscription link is in subscriptions table
 }
 
@@ -1714,4 +1851,105 @@ export async function updatePaymentRefundStatus(
       updatedAt: new Date(),
     })
     .where(eq(payments.razorpayPaymentId, razorpayPaymentId));
+}
+
+// Alias so payments.ts can use the more natural `createPayment` name.
+export const createPayment = createOrUpdatePayment;
+
+// ============================================================================
+// VS CODE EXTENSION HELPERS
+// ============================================================================
+
+export async function getUserByApiKey(apiKey: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.apiKey, apiKey))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function updateUserApiKey(userId: number, apiKey: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(users)
+    .set({ apiKey, updatedAt: new Date() })
+    .where(eq(users.id, userId));
+}
+
+export async function updateUser(
+  userId: number,
+  data: Partial<{
+    name: string;
+    apiKey: string | null;
+    scansRemaining: number;
+    onboardingCompleted: boolean;
+    plan: "free" | "pro" | "enterprise";
+  }>
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(users)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(users.id, userId));
+}
+
+export async function recordVSCodeActivity(
+  userId: number,
+  type: string,
+  data: unknown,
+  timestamp: Date
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const id = `vsa_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  await db.insert(vscodeActivities).values({
+    id,
+    userId,
+    type,
+    data: data as any,
+    timestamp,
+  });
+  return { id };
+}
+
+// Alias naming for the VS Code router.
+export const getRecentScansForUser = getRecentScans;
+
+export async function getOpenFindingsCount(userId: number): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const result = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(findings)
+    .where(and(eq(findings.userId, userId), eq(findings.status, "open")));
+  return Number(result[0]?.count ?? 0);
+}
+
+export async function getRecentFindingsForUser(userId: number, limit = 5) {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db
+    .select({
+      id: findings.id,
+      title: findings.title,
+      severity: findings.severity,
+      status: findings.status,
+      category: findings.category,
+      collectionName: collections.name,
+      userId: findings.userId,
+    })
+    .from(findings)
+    .leftJoin(collections, eq(findings.collectionId, collections.id))
+    .where(eq(findings.userId, userId))
+    .orderBy(desc(findings.createdAt))
+    .limit(limit);
+  return rows.map(r => ({
+    ...r,
+    collectionName: r.collectionName ?? "Unknown",
+  }));
 }

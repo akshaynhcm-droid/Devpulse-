@@ -15,10 +15,16 @@ export const teamRouter = router({
     .mutation(async ({ input, ctx }) => {
       const existing = await db.getTeamMemberByEmail(ctx.user.id, input.email);
       if (existing) {
-        throw new Error("An invitation has already been sent to this email address");
+        throw new Error(
+          "An invitation has already been sent to this email address"
+        );
       }
 
-      const member = await db.inviteTeamMember(ctx.user.id, input.email, input.role);
+      const member = await db.inviteTeamMember(
+        ctx.user.id,
+        input.email,
+        input.role
+      );
 
       await sendTeamInviteEmail({
         toEmail: input.email,
@@ -32,10 +38,12 @@ export const teamRouter = router({
 
   list: protectedProcedure
     .input(
-      z.object({
-        page: z.number().int().min(1).default(1),
-        pageSize: z.number().int().min(1).max(100).default(20),
-      }).optional()
+      z
+        .object({
+          page: z.number().int().min(1).default(1),
+          pageSize: z.number().int().min(1).max(100).default(20),
+        })
+        .optional()
     )
     .query(async ({ input, ctx }) => {
       const members = await db.getTeamMembersByUserId(ctx.user.id);
@@ -152,12 +160,18 @@ export const teamRouter = router({
     .query(async ({ input }) => {
       const member = await db.getTeamMemberById(input.token);
       if (!member || member.status !== "pending") {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Invitation not found or expired" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Invitation not found or expired",
+        });
       }
 
       const inviter = await db.getUserById(member.userId);
       if (!inviter) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Inviter not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Inviter not found",
+        });
       }
 
       return {
@@ -175,13 +189,22 @@ export const teamRouter = router({
     .mutation(async ({ input, ctx }) => {
       const member = await db.getTeamMemberById(input.token);
       if (!member) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Invitation not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Invitation not found",
+        });
       }
       if (member.memberEmail !== ctx.user.email) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "This invitation is not for your email address" });
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "This invitation is not for your email address",
+        });
       }
       if (member.status !== "pending") {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Invitation is no longer pending" });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invitation is no longer pending",
+        });
       }
 
       await db.acceptTeamInvitation(input.token, ctx.user.id);
@@ -193,13 +216,22 @@ export const teamRouter = router({
     .mutation(async ({ input, ctx }) => {
       const member = await db.getTeamMemberById(input.token);
       if (!member) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Invitation not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Invitation not found",
+        });
       }
       if (member.memberEmail !== ctx.user.email) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "This invitation is not for your email address" });
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "This invitation is not for your email address",
+        });
       }
       if (member.status !== "pending") {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Invitation is no longer pending" });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invitation is no longer pending",
+        });
       }
 
       await db.rejectTeamInvitation(input.token);

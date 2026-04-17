@@ -39,7 +39,7 @@ function KillSwitch() {
         <input
           type="number"
           value={budget}
-          onChange={(e) => setBudget(Number(e.target.value))}
+          onChange={e => setBudget(Number(e.target.value))}
           data-testid="budget-input"
         />
         <button onClick={setBudgetLimit} data-testid="set-budget-btn">
@@ -87,8 +87,12 @@ describe("KillSwitch", () => {
       expect(screen.getByTestId("current-budget")).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId("current-budget")).toHaveTextContent("Budget: $100");
-    expect(screen.getByTestId("current-spend")).toHaveTextContent("Current Spend: $45");
+    expect(screen.getByTestId("current-budget")).toHaveTextContent(
+      "Budget: $100"
+    );
+    expect(screen.getByTestId("current-spend")).toHaveTextContent(
+      "Current Spend: $45"
+    );
   });
 
   it("allows setting budget limit", async () => {
@@ -131,8 +135,12 @@ describe("KillSwitch", () => {
       expect(screen.getByTestId("auto-trigger")).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId("auto-trigger")).toHaveTextContent("Auto-trigger: ACTIVE");
-    expect(screen.getByTestId("trigger-status")).toHaveTextContent("Status: 🚨 TRIGGERED");
+    expect(screen.getByTestId("auto-trigger")).toHaveTextContent(
+      "Auto-trigger: ACTIVE"
+    );
+    expect(screen.getByTestId("trigger-status")).toHaveTextContent(
+      "Status: 🚨 TRIGGERED"
+    );
   });
 
   it("shows normal status when under budget", async () => {
@@ -142,6 +150,8 @@ describe("KillSwitch", () => {
       expect(screen.getByTestId("trigger-status")).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId("trigger-status")).toHaveTextContent("Status: ✅ Normal");
+    expect(screen.getByTestId("trigger-status")).toHaveTextContent(
+      "Status: ✅ Normal"
+    );
   });
 });

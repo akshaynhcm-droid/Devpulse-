@@ -28,7 +28,10 @@ export const tokenAnalyticsRouter = router({
   getAnalytics: protectedProcedure
     .input(z.object({ days: z.number().int().min(1).max(365).optional() }))
     .query(async ({ input, ctx }) => {
-      const usage = await db.getTokenUsageByUserId(ctx.user.id, input.days || 30);
+      const usage = await db.getTokenUsageByUserId(
+        ctx.user.id,
+        input.days || 30
+      );
 
       const byModel: Record<string, any> = {};
       let totalCost = 0;
@@ -90,15 +93,23 @@ export const tokenAnalyticsRouter = router({
   exportAnalytics: protectedProcedure
     .input(z.object({ days: z.number().int().min(1).max(365).optional() }))
     .mutation(async ({ input, ctx }) => {
-      const usage = await db.getTokenUsageByUserId(ctx.user.id, input.days || 30);
+      const usage = await db.getTokenUsageByUserId(
+        ctx.user.id,
+        input.days || 30
+      );
 
-      const csvHeader = "Date,Model,Prompt Tokens,Completion Tokens,Thinking Tokens,Total Tokens,Cost (USD)";
-      const csvRows = usage.map(u =>
-        `${new Date(u.date).toISOString()},${u.model},${u.promptTokens},${u.completionTokens},${u.thinkingTokens},${u.totalTokens},${parseFloat(u.costUSD as any).toFixed(6)}`
+      const csvHeader =
+        "Date,Model,Prompt Tokens,Completion Tokens,Thinking Tokens,Total Tokens,Cost (USD)";
+      const csvRows = usage.map(
+        u =>
+          `${new Date(u.date).toISOString()},${u.model},${u.promptTokens},${u.completionTokens},${u.thinkingTokens},${u.totalTokens},${parseFloat(u.costUSD as any).toFixed(6)}`
       );
       const csv = [csvHeader, ...csvRows].join("\n");
 
-      const totalCost = usage.reduce((sum, u) => sum + parseFloat(u.costUSD as any), 0);
+      const totalCost = usage.reduce(
+        (sum, u) => sum + parseFloat(u.costUSD as any),
+        0
+      );
       const totalTokens = usage.reduce((sum, u) => sum + u.totalTokens, 0);
 
       return {

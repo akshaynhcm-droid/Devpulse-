@@ -13,7 +13,7 @@ export default function AdminPage() {
     try {
       const [statsRes, usersRes] = await Promise.all([
         fetch(`${API_BASE}/admin/platform-stats`),
-        fetch(`${API_BASE}/admin/users`)
+        fetch(`${API_BASE}/admin/users`),
       ]);
       setStats(await statsRes.json());
       setUsers((await usersRes.json()).users || []);
@@ -46,8 +46,12 @@ export default function AdminPage() {
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-blue-400">Admin Dashboard</h1>
-            <p className="text-gray-400 mt-1">Platform administration and user management</p>
+            <h1 className="text-3xl font-bold text-blue-400">
+              Admin Dashboard
+            </h1>
+            <p className="text-gray-400 mt-1">
+              Platform administration and user management
+            </p>
           </div>
           <Link href="/dashboard" className="text-blue-400 hover:text-blue-300">
             &larr; Dashboard
@@ -69,11 +73,15 @@ export default function AdminPage() {
               </div>
               <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
                 <p className="text-sm text-gray-400 mb-1">Total Collections</p>
-                <p className="text-3xl font-bold">{stats?.total_collections || 0}</p>
+                <p className="text-3xl font-bold">
+                  {stats?.total_collections || 0}
+                </p>
               </div>
               <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
                 <p className="text-sm text-gray-400 mb-1">System Health</p>
-                <p className={`text-3xl font-bold ${stats?.system_healthy ? "text-green-400" : "text-red-400"}`}>
+                <p
+                  className={`text-3xl font-bold ${stats?.system_healthy ? "text-green-400" : "text-red-400"}`}
+                >
                   {stats?.system_healthy ? "Healthy" : "Error"}
                 </p>
               </div>
@@ -88,10 +96,18 @@ export default function AdminPage() {
                   <table className="w-full">
                     <thead className="bg-gray-700">
                       <tr>
-                        <th className="text-left px-6 py-3 text-sm text-gray-400">Email</th>
-                        <th className="text-left px-6 py-3 text-sm text-gray-400">Plan</th>
-                        <th className="text-left px-6 py-3 text-sm text-gray-400">Created</th>
-                        <th className="text-left px-6 py-3 text-sm text-gray-400">Actions</th>
+                        <th className="text-left px-6 py-3 text-sm text-gray-400">
+                          Email
+                        </th>
+                        <th className="text-left px-6 py-3 text-sm text-gray-400">
+                          Plan
+                        </th>
+                        <th className="text-left px-6 py-3 text-sm text-gray-400">
+                          Created
+                        </th>
+                        <th className="text-left px-6 py-3 text-sm text-gray-400">
+                          Actions
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -99,15 +115,21 @@ export default function AdminPage() {
                         <tr key={user.id} className="border-t border-gray-700">
                           <td className="px-6 py-3">{user.email}</td>
                           <td className="px-6 py-3">
-                            <span className={`px-2 py-1 rounded text-sm ${
-                              user.plan === "pro" ? "bg-blue-900/30 text-blue-400" :
-                              user.plan === "enterprise" ? "bg-purple-900/30 text-purple-400" :
-                              "bg-gray-700 text-gray-400"
-                            }`}>
+                            <span
+                              className={`px-2 py-1 rounded text-sm ${
+                                user.plan === "pro"
+                                  ? "bg-blue-900/30 text-blue-400"
+                                  : user.plan === "enterprise"
+                                    ? "bg-purple-900/30 text-purple-400"
+                                    : "bg-gray-700 text-gray-400"
+                              }`}
+                            >
                               {user.plan}
                             </span>
                           </td>
-                          <td className="px-6 py-3 text-sm text-gray-400">{user.created_at}</td>
+                          <td className="px-6 py-3 text-sm text-gray-400">
+                            {user.created_at}
+                          </td>
                           <td className="px-6 py-3">
                             {user.plan === "free" && (
                               <button

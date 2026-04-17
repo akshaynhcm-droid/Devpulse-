@@ -22,6 +22,7 @@ import {
   verifyGitHubWebhook,
 } from "../github";
 import { scheduleWeeklyDigest } from "../jobs/weeklyDigest";
+import { verifyWebhookSignature } from "../utils/security";
 
 // ============================================================================
 // STARTUP VALIDATION — fail fast if critical config is missing
@@ -159,7 +160,8 @@ async function startServer() {
               defaultSrc: ["'self'"],
               scriptSrc: [
                 "'self'",
-                (req, res) => `'nonce-${(res as any).locals.cspNonce}'`,
+                (_req: unknown, res: unknown) =>
+                  `'nonce-${(res as { locals: { cspNonce: string } }).locals.cspNonce}'`,
               ],
               styleSrc: ["'self'", "'unsafe-inline'"],
               imgSrc: ["'self'", "data:", "blob:", "https:"],
@@ -331,20 +333,7 @@ async function startServer() {
         return;
       }
 
-      // Verify webhook signature
-      const expectedSignature = crypto
-        .createHmac("sha256", webhookSecret)
-        .update(req.body)
-        .digest("hex");
-
-      // timingSafeEqual requires equal-length buffers; fall back to constant-time compare
-      const sigBuf = Buffer.from(signature, "utf-8");
-      const expBuf = Buffer.from(expectedSignature, "utf-8");
-      const isValidSignature =
-        sigBuf.length === expBuf.length &&
-        crypto.timingSafeEqual(sigBuf, expBuf);
-
-      if (!isValidSignature) {
+      if (!verifyWebhookSignature(req.body, signature, webhookSecret)) {
         res.status(400).json({ error: "Invalid signature" });
         return;
       }

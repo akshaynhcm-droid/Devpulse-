@@ -38,11 +38,31 @@ export default function OnboardingPage() {
   }, []);
 
   const steps = [
-    { id: "import_collection", title: "Import a Collection", description: "Import your first API collection to get started" },
-    { id: "run_scan", title: "Run a Security Scan", description: "Scan your collection for vulnerabilities" },
-    { id: "review_findings", title: "Review Findings", description: "Review and prioritize security findings" },
-    { id: "invite_team", title: "Invite Team Members", description: "Add colleagues to collaborate" },
-    { id: "setup_compliance", title: "Setup Compliance Reporting", description: "Configure PCI DSS or OWASP reporting" },
+    {
+      id: "import_collection",
+      title: "Import a Collection",
+      description: "Import your first API collection to get started",
+    },
+    {
+      id: "run_scan",
+      title: "Run a Security Scan",
+      description: "Scan your collection for vulnerabilities",
+    },
+    {
+      id: "review_findings",
+      title: "Review Findings",
+      description: "Review and prioritize security findings",
+    },
+    {
+      id: "invite_team",
+      title: "Invite Team Members",
+      description: "Add colleagues to collaborate",
+    },
+    {
+      id: "setup_compliance",
+      title: "Setup Compliance Reporting",
+      description: "Configure PCI DSS or OWASP reporting",
+    },
   ];
 
   return (
@@ -51,7 +71,9 @@ export default function OnboardingPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-blue-400">Onboarding</h1>
-            <p className="text-gray-400 mt-1">Get started with DevPulse in 5 steps</p>
+            <p className="text-gray-400 mt-1">
+              Get started with DevPulse in 5 steps
+            </p>
           </div>
           <Link href="/dashboard" className="text-blue-400 hover:text-blue-300">
             &larr; Dashboard
@@ -62,7 +84,7 @@ export default function OnboardingPage() {
           <p className="text-gray-400">Loading...</p>
         ) : (
           <div className="space-y-6">
-            {steps.map((step) => (
+            {steps.map(step => (
               <div
                 key={step.id}
                 className={`p-6 rounded-lg border ${
@@ -82,8 +104,17 @@ export default function OnboardingPage() {
                         }`}
                       >
                         {progress?.[step.id] && (
-                          <svg className="w-4 h-4 text-white ml-1" fill="none" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          <svg
+                            className="w-4 h-4 text-white ml-1"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={3}
+                              d="M5 13l4 4L19 7"
+                            />
                           </svg>
                         )}
                       </div>

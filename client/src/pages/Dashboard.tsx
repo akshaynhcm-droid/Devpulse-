@@ -6,8 +6,10 @@ import { Card } from "@/components/ui/card";
 
 export default function Dashboard() {
   const [, navigate] = useLocation();
-  const { data: metrics, isLoading: metricsLoading } = trpc.dashboard.getMetrics.useQuery();
-  const { data: recentScans, isLoading: scansLoading } = trpc.dashboard.getRecentScans.useQuery();
+  const { data: metrics, isLoading: metricsLoading } =
+    trpc.dashboard.getMetrics.useQuery();
+  const { data: recentScans, isLoading: scansLoading } =
+    trpc.dashboard.getRecentScans.useQuery();
 
   const riskLevelColor = (level: string) => {
     switch (level) {
@@ -28,7 +30,9 @@ export default function Dashboard() {
     <div className="space-y-8">
       {/* Welcome Section */}
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-foreground">Welcome to DevPulse</h1>
+        <h1 className="text-3xl font-bold text-foreground">
+          Welcome to DevPulse
+        </h1>
         <p className="text-muted-foreground">
           Your API security and LLM cost intelligence platform
         </p>
@@ -40,7 +44,9 @@ export default function Dashboard() {
         <Card className="p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Total Collections</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Total Collections
+              </p>
               <p className="text-3xl font-bold text-foreground">
                 {metricsLoading ? "-" : metrics?.totalCollections || 0}
               </p>
@@ -61,7 +67,9 @@ export default function Dashboard() {
         <Card className="p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Total Findings</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Total Findings
+              </p>
               <p className="text-3xl font-bold text-foreground">
                 {metricsLoading ? "-" : metrics?.totalFindings || 0}
               </p>
@@ -82,7 +90,9 @@ export default function Dashboard() {
         <Card className="p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Highest Risk Score</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Highest Risk Score
+              </p>
               <p className="text-3xl font-bold text-foreground">
                 {metricsLoading ? "-" : metrics?.highestRiskScore || 0}
               </p>
@@ -103,7 +113,9 @@ export default function Dashboard() {
         <Card className="p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Team Members</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Team Members
+              </p>
               <p className="text-3xl font-bold text-foreground">
                 {metricsLoading ? "-" : metrics?.teamMembers || 0}
               </p>
@@ -125,21 +137,33 @@ export default function Dashboard() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-foreground">Recent Scans</h2>
-          <Button onClick={() => navigate("/scanning")} variant="outline" size="sm">
+          <Button
+            onClick={() => navigate("/scanning")}
+            variant="outline"
+            size="sm"
+          >
             View All Scans
           </Button>
         </div>
 
         {scansLoading ? (
-          <div className="text-center py-8 text-muted-foreground">Loading scans...</div>
+          <div className="text-center py-8 text-muted-foreground">
+            Loading scans...
+          </div>
         ) : recentScans?.scans && recentScans.scans.length > 0 ? (
           <div className="space-y-2">
-            {recentScans.scans.map((scan) => (
-              <Card key={scan.id} className="p-4 flex items-center justify-between hover:shadow-md transition-shadow">
+            {recentScans.scans.map(scan => (
+              <Card
+                key={scan.id}
+                className="p-4 flex items-center justify-between hover:shadow-md transition-shadow"
+              >
                 <div className="flex-1">
-                  <p className="font-medium text-foreground">{scan.collectionName}</p>
+                  <p className="font-medium text-foreground">
+                    {scan.collectionName}
+                  </p>
                   <p className="text-sm text-muted-foreground">
-                    {scan.totalFindings} findings • Risk Score: {Math.round(scan.riskScore)}
+                    {scan.totalFindings} findings • Risk Score:{" "}
+                    {Math.round(scan.riskScore)}
                   </p>
                 </div>
                 <div className="flex items-center gap-4">
@@ -159,8 +183,13 @@ export default function Dashboard() {
           </div>
         ) : (
           <Card className="p-8 text-center">
-            <p className="text-muted-foreground mb-4">No scans yet. Get started by importing a collection.</p>
-            <Button onClick={() => navigate("/collections")} className="mx-auto">
+            <p className="text-muted-foreground mb-4">
+              No scans yet. Get started by importing a collection.
+            </p>
+            <Button
+              onClick={() => navigate("/collections")}
+              className="mx-auto"
+            >
               Import Collection
             </Button>
           </Card>

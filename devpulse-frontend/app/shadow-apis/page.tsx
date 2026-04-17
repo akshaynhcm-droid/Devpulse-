@@ -24,7 +24,9 @@ export default function ShadowAPIsPage() {
     if (!selectedCollection) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/shadow-apis/collection/${selectedCollection}`);
+      const res = await fetch(
+        `${API_BASE}/shadow-apis/collection/${selectedCollection}`
+      );
       const json = await res.json();
       setShadowAPIs(json.shadow_apis || []);
     } catch (err) {
@@ -36,7 +38,9 @@ export default function ShadowAPIsPage() {
 
   const markAsDocumented = async (apiId: string) => {
     try {
-      const res = await fetch(`${API_BASE}/shadow-apis/${apiId}/document`, { method: "PATCH" });
+      const res = await fetch(`${API_BASE}/shadow-apis/${apiId}/document`, {
+        method: "PATCH",
+      });
       if (res.ok) fetchShadowAPIs();
     } catch (err) {
       console.error("Failed to mark as documented:", err);
@@ -58,7 +62,9 @@ export default function ShadowAPIsPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-blue-400">Shadow APIs</h1>
-            <p className="text-gray-400 mt-1">Detect undocumented endpoints in your collections</p>
+            <p className="text-gray-400 mt-1">
+              Detect undocumented endpoints in your collections
+            </p>
           </div>
           <Link href="/dashboard" className="text-blue-400 hover:text-blue-300">
             &larr; Dashboard
@@ -66,14 +72,16 @@ export default function ShadowAPIsPage() {
         </div>
 
         <div className="mb-8">
-          <label className="block text-sm text-gray-400 mb-1">Select Collection</label>
+          <label className="block text-sm text-gray-400 mb-1">
+            Select Collection
+          </label>
           <select
             value={selectedCollection}
             onChange={handleCollectionChange}
             className="w-full max-w-md px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none"
           >
             <option value="">-- Select a collection --</option>
-            {collections.map((col) => (
+            {collections.map(col => (
               <option key={col.id} value={col.id}>
                 {col.name}
               </option>
@@ -85,33 +93,45 @@ export default function ShadowAPIsPage() {
           {loading ? (
             <p className="text-gray-400">Loading...</p>
           ) : !selectedCollection ? (
-            <p className="text-gray-500 text-center py-12">Select a collection to scan for shadow APIs.</p>
+            <p className="text-gray-500 text-center py-12">
+              Select a collection to scan for shadow APIs.
+            </p>
           ) : shadowAPIs.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-green-400 text-lg font-bold">No shadow APIs found</p>
-              <p className="text-gray-400 mt-2">All endpoints in this collection are documented.</p>
+              <p className="text-green-400 text-lg font-bold">
+                No shadow APIs found
+              </p>
+              <p className="text-gray-400 mt-2">
+                All endpoints in this collection are documented.
+              </p>
             </div>
           ) : (
-            shadowAPIs.map((api) => (
+            shadowAPIs.map(api => (
               <div
                 key={api.id}
                 className={`p-4 rounded-lg border ${
                   api.is_documented
                     ? "bg-gray-800 border-gray-700"
                     : api.risk_level === "High"
-                    ? "bg-red-900/30 border-red-500"
-                    : "bg-yellow-900/30 border-yellow-500"
+                      ? "bg-red-900/30 border-red-500"
+                      : "bg-yellow-900/30 border-yellow-500"
                 }`}
               >
                 <div className="flex justify-between items-start">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className={`font-bold text-sm ${
-                        api.risk_level === "High" ? "text-red-400" : "text-yellow-400"
-                      }`}>
+                      <span
+                        className={`font-bold text-sm ${
+                          api.risk_level === "High"
+                            ? "text-red-400"
+                            : "text-yellow-400"
+                        }`}
+                      >
                         {api.risk_level.toUpperCase()}
                       </span>
-                      <span className="text-gray-400 text-xs">{api.method}</span>
+                      <span className="text-gray-400 text-xs">
+                        {api.method}
+                      </span>
                     </div>
                     <p className="text-sm mt-1 text-gray-300">{api.endpoint}</p>
                     <p className="text-xs text-gray-500 mt-1">{api.reason}</p>

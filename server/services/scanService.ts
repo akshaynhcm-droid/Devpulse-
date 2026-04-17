@@ -109,7 +109,10 @@ export async function runCollectionScan(
         dashboardUrl: `${process.env.APP_URL || "http://localhost:3000"}/collections/${collectionId}`,
       });
     } catch (error) {
-      console.warn("[ScanService] Failed to send scan completion email:", error);
+      console.warn(
+        "[ScanService] Failed to send scan completion email:",
+        error
+      );
     }
   }
 

@@ -28,7 +28,11 @@ export class PageErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error(`[ErrorBoundary] Error in ${this.props.pageName ?? "page"}:`, error, info.componentStack);
+    console.error(
+      `[ErrorBoundary] Error in ${this.props.pageName ?? "page"}:`,
+      error,
+      info.componentStack
+    );
   }
 
   handleReset = () => {
@@ -44,7 +48,9 @@ export class PageErrorBoundary extends React.Component<Props, State> {
               <AlertTriangle className="w-8 h-8 text-destructive" />
             </div>
             <div className="space-y-2">
-              <h2 className="text-xl font-bold text-foreground">Something went wrong</h2>
+              <h2 className="text-xl font-bold text-foreground">
+                Something went wrong
+              </h2>
               <p className="text-sm text-muted-foreground">
                 {this.props.pageName
                   ? `The ${this.props.pageName} page encountered an unexpected error.`

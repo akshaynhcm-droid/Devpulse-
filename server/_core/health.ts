@@ -1,5 +1,5 @@
 import { redis } from "./cache";
-import { db } from "../db";
+import * as db from "../db";
 
 interface HealthStatus {
   status: "ok" | "degraded" | "error";
@@ -12,7 +12,7 @@ interface HealthStatus {
 
 export async function getHealthStatus(): Promise<HealthStatus> {
   const uptime = process.uptime();
-  
+
   // Check database connection
   let dbStatus: "connected" | "disconnected" = "disconnected";
   try {
@@ -32,12 +32,12 @@ export async function getHealthStatus(): Promise<HealthStatus> {
     redisStatus = "disconnected";
   }
 
-  const status: "ok" | "degraded" | "error" = 
-    dbStatus === "connected" && redisStatus === "connected" 
-      ? "ok" 
+  const status: "ok" | "degraded" | "error" =
+    dbStatus === "connected" && redisStatus === "connected"
+      ? "ok"
       : dbStatus === "connected" || redisStatus === "connected"
-      ? "degraded"
-      : "error";
+        ? "degraded"
+        : "error";
 
   return {
     status,
@@ -52,6 +52,7 @@ export async function getHealthStatus(): Promise<HealthStatus> {
 // Express health check handler
 export async function healthCheckHandler(req: any, res: any) {
   const health = await getHealthStatus();
-  const statusCode = health.status === "ok" ? 200 : health.status === "degraded" ? 200 : 503;
+  const statusCode =
+    health.status === "ok" ? 200 : health.status === "degraded" ? 200 : 503;
   res.status(statusCode).json(health);
 }

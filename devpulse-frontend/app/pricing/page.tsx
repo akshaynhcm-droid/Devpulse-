@@ -8,7 +8,9 @@ export default function PricingPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-blue-400">Pricing</h1>
-            <p className="text-gray-400 mt-1">Choose the plan that fits your needs</p>
+            <p className="text-gray-400 mt-1">
+              Choose the plan that fits your needs
+            </p>
           </div>
           <Link href="/" className="text-blue-400 hover:text-blue-300">
             &larr; Home
@@ -24,7 +26,8 @@ export default function PricingPage() {
                 <span className="text-green-400">✓</span> 1 API Collection
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-green-400">✓</span> Basic Security Scanning
+                <span className="text-green-400">✓</span> Basic Security
+                Scanning
               </li>
               <li className="flex items-center gap-2">
                 <span className="text-green-400">✓</span> Community Support
@@ -36,7 +39,9 @@ export default function PricingPage() {
           </div>
 
           <div className="bg-gray-800 p-8 rounded-lg border border-blue-500">
-            <div className="text-blue-400 text-sm font-semibold mb-2">POPULAR</div>
+            <div className="text-blue-400 text-sm font-semibold mb-2">
+              POPULAR
+            </div>
             <h2 className="text-2xl font-bold mb-2">Pro</h2>
             <p className="text-4xl font-bold mb-6">$29/month</p>
             <ul className="space-y-3 mb-8 text-gray-300">
@@ -44,7 +49,8 @@ export default function PricingPage() {
                 <span className="text-green-400">✓</span> Unlimited Collections
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-green-400">✓</span> Advanced Security Scanning
+                <span className="text-green-400">✓</span> Advanced Security
+                Scanning
               </li>
               <li className="flex items-center gap-2">
                 <span className="text-green-400">✓</span> Shadow API Detection
@@ -53,10 +59,12 @@ export default function PricingPage() {
                 <span className="text-green-400">✓</span> Compliance Reports
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-green-400">✓</span> Kill Switch & Budget Mgmt
+                <span className="text-green-400">✓</span> Kill Switch & Budget
+                Mgmt
               </li>
               <li className="flex items-center gap-2">
-                <span className="text green400">✓</span> Team Collaboration (10 members)
+                <span className="text green400">✓</span> Team Collaboration (10
+                members)
               </li>
               <li className="flex items-center gap-2">
                 <span className="text-green-400">✓</span> Priority Support
@@ -68,7 +76,9 @@ export default function PricingPage() {
           </div>
 
           <div className="bg-gray-800 p-8 rounded-lg border border-purple-500">
-            <div className="text-purple-400 text-sm font-semibold mb-2">ENTERPRISE</div>
+            <div className="text-purple-400 text-sm font-semibold mb-2">
+              ENTERPRISE
+            </div>
             <h2 className="text-2xl font-bold mb-2">Enterprise</h2>
             <p className="text-4xl font-bold mb-6">$99/month</p>
             <ul className="space-y-3 mb-8 text-gray-300">
@@ -79,13 +89,15 @@ export default function PricingPage() {
                 <span className="text-green-400">✓</span> Unlimited Team Members
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-green-400">✓</span> Custom Compliance Frameworks
+                <span className="text-green-400">✓</span> Custom Compliance
+                Frameworks
               </li>
               <li className="flex items-center gap-2">
                 <span className="text-green-400">✓</span> SSO / SAML Integration
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-green-400">✓</span> Dedicated Account Manager
+                <span className="text-green-400">✓</span> Dedicated Account
+                Manager
               </li>
               <li className="flex items-center gap-2">
                 <span className="text-green-400">✓</span> SLA Guarantee (99.9%)

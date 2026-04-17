@@ -3,18 +3,62 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { CheckCircle2, Circle, Upload, Zap, Eye, Users, FileText, ArrowRight } from "lucide-react";
+import {
+  CheckCircle2,
+  Circle,
+  Upload,
+  Zap,
+  Eye,
+  Users,
+  FileText,
+  ArrowRight,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 
-type OnboardingStep = "importCollection" | "runScan" | "reviewFindings" | "inviteTeam" | "setupCompliance";
+type OnboardingStep =
+  | "importCollection"
+  | "runScan"
+  | "reviewFindings"
+  | "inviteTeam"
+  | "setupCompliance";
 
-const STEPS: Array<{ id: OnboardingStep; title: string; description: string; icon: React.ReactNode }> = [
-  { id: "importCollection", title: "Import Collection", description: "Upload your first API collection", icon: <Upload className="w-6 h-6" /> },
-  { id: "runScan", title: "Run Scan", description: "Execute a security scan", icon: <Zap className="w-6 h-6" /> },
-  { id: "reviewFindings", title: "Review Findings", description: "Examine security findings", icon: <Eye className="w-6 h-6" /> },
-  { id: "inviteTeam", title: "Invite Team", description: "Add team members", icon: <Users className="w-6 h-6" /> },
-  { id: "setupCompliance", title: "Setup Compliance", description: "Generate compliance reports", icon: <FileText className="w-6 h-6" /> },
+const STEPS: Array<{
+  id: OnboardingStep;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+}> = [
+  {
+    id: "importCollection",
+    title: "Import Collection",
+    description: "Upload your first API collection",
+    icon: <Upload className="w-6 h-6" />,
+  },
+  {
+    id: "runScan",
+    title: "Run Scan",
+    description: "Execute a security scan",
+    icon: <Zap className="w-6 h-6" />,
+  },
+  {
+    id: "reviewFindings",
+    title: "Review Findings",
+    description: "Examine security findings",
+    icon: <Eye className="w-6 h-6" />,
+  },
+  {
+    id: "inviteTeam",
+    title: "Invite Team",
+    description: "Add team members",
+    icon: <Users className="w-6 h-6" />,
+  },
+  {
+    id: "setupCompliance",
+    title: "Setup Compliance",
+    description: "Generate compliance reports",
+    icon: <FileText className="w-6 h-6" />,
+  },
 ];
 
 export default function Onboarding() {
@@ -23,7 +67,8 @@ export default function Onboarding() {
   const [collectionName, setCollectionName] = useState("");
   const [teamEmail, setTeamEmail] = useState("");
 
-  const { data: progress, refetch: refetchProgress } = trpc.onboarding.getProgress.useQuery();
+  const { data: progress, refetch: refetchProgress } =
+    trpc.onboarding.getProgress.useQuery();
   const completeStepMutation = trpc.onboarding.completeStep.useMutation();
   const completeMutation = trpc.onboarding.complete.useMutation();
 
@@ -74,7 +119,7 @@ export default function Onboarding() {
   };
 
   const completionPercentage = progress
-    ? (Object.values(progress).filter((v) => v === true).length / 5) * 100
+    ? (Object.values(progress).filter(v => v === true).length / 5) * 100
     : 0;
 
   return (
@@ -82,7 +127,9 @@ export default function Onboarding() {
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold text-foreground">Welcome to DevPulse</h1>
+          <h1 className="text-4xl font-bold text-foreground">
+            Welcome to DevPulse
+          </h1>
           <p className="text-lg text-muted-foreground">
             Let's set up your API security platform in 5 simple steps
           </p>
@@ -91,8 +138,12 @@ export default function Onboarding() {
         {/* Progress Bar */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-foreground">Your Progress</span>
-            <span className="text-sm font-medium text-accent">{Math.round(completionPercentage)}%</span>
+            <span className="text-sm font-medium text-foreground">
+              Your Progress
+            </span>
+            <span className="text-sm font-medium text-accent">
+              {Math.round(completionPercentage)}%
+            </span>
           </div>
           <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
             <div
@@ -121,7 +172,9 @@ export default function Onboarding() {
               ) : (
                 <Circle className="w-5 h-5" />
               )}
-              <span className="text-xs font-medium text-center">{step.title}</span>
+              <span className="text-xs font-medium text-center">
+                {step.title}
+              </span>
             </button>
           ))}
         </div>
@@ -133,8 +186,12 @@ export default function Onboarding() {
               {currentStep.icon}
             </div>
             <div className="flex-1">
-              <h2 className="text-2xl font-bold text-foreground">{currentStep.title}</h2>
-              <p className="text-muted-foreground mt-1">{currentStep.description}</p>
+              <h2 className="text-2xl font-bold text-foreground">
+                {currentStep.title}
+              </h2>
+              <p className="text-muted-foreground mt-1">
+                {currentStep.description}
+              </p>
             </div>
           </div>
 
@@ -143,7 +200,8 @@ export default function Onboarding() {
             {currentStep.id === "importCollection" && (
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Start by uploading your first Postman or OpenAPI collection. This will allow DevPulse to analyze your API endpoints.
+                  Start by uploading your first Postman or OpenAPI collection.
+                  This will allow DevPulse to analyze your API endpoints.
                 </p>
                 <div className="bg-muted/50 p-4 rounded-lg space-y-3">
                   <div>
@@ -153,7 +211,7 @@ export default function Onboarding() {
                     <Input
                       placeholder="My API Collection"
                       value={collectionName}
-                      onChange={(e) => setCollectionName(e.target.value)}
+                      onChange={e => setCollectionName(e.target.value)}
                     />
                   </div>
                   <Button
@@ -170,7 +228,8 @@ export default function Onboarding() {
             {currentStep.id === "runScan" && (
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Run a comprehensive security scan on your imported collection to identify vulnerabilities and security issues.
+                  Run a comprehensive security scan on your imported collection
+                  to identify vulnerabilities and security issues.
                 </p>
                 <div className="bg-muted/50 p-4 rounded-lg space-y-3">
                   <div className="flex items-center gap-2 text-sm text-foreground">
@@ -191,7 +250,8 @@ export default function Onboarding() {
             {currentStep.id === "reviewFindings" && (
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Review the security findings from your scan. Findings are categorized by severity: Critical, High, Medium, and Low.
+                  Review the security findings from your scan. Findings are
+                  categorized by severity: Critical, High, Medium, and Low.
                 </p>
                 <div className="bg-muted/50 p-4 rounded-lg space-y-3">
                   <div className="grid grid-cols-2 gap-2 text-xs">
@@ -226,7 +286,8 @@ export default function Onboarding() {
             {currentStep.id === "inviteTeam" && (
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Invite your team members to collaborate on API security. You can assign roles: admin, editor, or viewer.
+                  Invite your team members to collaborate on API security. You
+                  can assign roles: admin, editor, or viewer.
                 </p>
                 <div className="bg-muted/50 p-4 rounded-lg space-y-3">
                   <div>
@@ -237,7 +298,7 @@ export default function Onboarding() {
                       type="email"
                       placeholder="colleague@company.com"
                       value={teamEmail}
-                      onChange={(e) => setTeamEmail(e.target.value)}
+                      onChange={e => setTeamEmail(e.target.value)}
                     />
                   </div>
                   <Button
@@ -254,7 +315,8 @@ export default function Onboarding() {
             {currentStep.id === "setupCompliance" && (
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Generate PCI DSS compliance reports to ensure your APIs meet regulatory requirements.
+                  Generate PCI DSS compliance reports to ensure your APIs meet
+                  regulatory requirements.
                 </p>
                 <div className="bg-muted/50 p-4 rounded-lg space-y-3">
                   <div className="flex items-center gap-2 text-sm text-foreground">
@@ -275,11 +337,7 @@ export default function Onboarding() {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-3 pt-4 border-t border-border">
-            <Button
-              onClick={handleSkip}
-              variant="ghost"
-              className="flex-1"
-            >
+            <Button onClick={handleSkip} variant="ghost" className="flex-1">
               {currentStepIndex === STEPS.length - 1 ? "Finish" : "Skip"}
             </Button>
             <Button
@@ -287,7 +345,9 @@ export default function Onboarding() {
               disabled={completeStepMutation.isPending}
               className="flex-1"
             >
-              {completeStepMutation.isPending ? "Completing..." : "Complete Step"}
+              {completeStepMutation.isPending
+                ? "Completing..."
+                : "Complete Step"}
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
@@ -296,7 +356,8 @@ export default function Onboarding() {
         {/* Tips */}
         <Card className="p-4 bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-900/30">
           <p className="text-sm text-blue-900 dark:text-blue-300">
-            <strong>Tip:</strong> You can complete these steps in any order. Come back to this page anytime to continue your onboarding.
+            <strong>Tip:</strong> You can complete these steps in any order.
+            Come back to this page anytime to continue your onboarding.
           </p>
         </Card>
       </div>

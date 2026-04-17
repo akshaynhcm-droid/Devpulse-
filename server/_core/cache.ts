@@ -3,14 +3,14 @@ import Redis from "ioredis";
 const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
 
 export const redis = new Redis(REDIS_URL, {
-  retryStrategy: (times) => {
+  retryStrategy: times => {
     const delay = Math.min(times * 50, 2000);
     return delay;
   },
   maxRetriesPerRequest: 3,
 });
 
-redis.on("error", (err) => {
+redis.on("error", err => {
   console.error("Redis error:", err);
 });
 
@@ -20,10 +20,10 @@ redis.on("connect", () => {
 
 // Cache TTL constants (in seconds)
 export const CACHE_TTL = {
-  DASHBOARD_STATS: 60,      // 1 minute
-  USER_COLLECTIONS: 30,     // 30 seconds
-  COMPLIANCE_SCORES: 300,   // 5 minutes
-  SCAN_RESULTS: 60,         // 1 minute
+  DASHBOARD_STATS: 60, // 1 minute
+  USER_COLLECTIONS: 30, // 30 seconds
+  COMPLIANCE_SCORES: 300, // 5 minutes
+  SCAN_RESULTS: 60, // 1 minute
 };
 
 // Generate cache keys

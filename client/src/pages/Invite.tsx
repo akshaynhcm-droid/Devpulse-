@@ -15,7 +15,8 @@ const roleDescriptions: Record<string, string> = {
 const roleColors: Record<string, string> = {
   admin: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
   editor: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-  viewer: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+  viewer:
+    "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
 };
 
 export default function Invite() {
@@ -25,17 +26,18 @@ export default function Invite() {
 
   const token = params?.token || "";
 
-  const { data: invitation, isLoading, error } = trpc.team.getInvitationByToken.useQuery(
-    { token },
-    { enabled: !!token }
-  );
+  const {
+    data: invitation,
+    isLoading,
+    error,
+  } = trpc.team.getInvitationByToken.useQuery({ token }, { enabled: !!token });
 
   const acceptMutation = trpc.team.acceptInvitationByToken.useMutation({
     onSuccess: () => {
       toast.success("Invitation accepted! Welcome to the workspace.");
       setLocation("/dashboard");
     },
-    onError: (err) => {
+    onError: err => {
       toast.error(err.message || "Failed to accept invitation");
       setIsProcessing(false);
     },
@@ -46,7 +48,7 @@ export default function Invite() {
       toast.success("Invitation declined");
       setLocation("/");
     },
-    onError: (err) => {
+    onError: err => {
       toast.error(err.message || "Failed to decline invitation");
       setIsProcessing(false);
     },
@@ -80,9 +82,14 @@ export default function Invite() {
           <XCircle className="w-12 h-12 mx-auto mb-4 text-red-500" />
           <h1 className="text-xl font-bold mb-2">Invitation Not Found</h1>
           <p className="text-muted-foreground mb-4">
-            This invitation may have expired, been declined, or already been accepted.
+            This invitation may have expired, been declined, or already been
+            accepted.
           </p>
-          <Button onClick={() => setLocation("/")} variant="outline" className="w-full">
+          <Button
+            onClick={() => setLocation("/")}
+            variant="outline"
+            className="w-full"
+          >
             Go Home
           </Button>
         </Card>
@@ -115,7 +122,9 @@ export default function Invite() {
           <p className="text-sm text-muted-foreground mb-2">Your role</p>
           <div className="flex items-center gap-2">
             <Shield className="w-4 h-4" />
-            <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${roleColors[invitation.role]}`}>
+            <span
+              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${roleColors[invitation.role]}`}
+            >
               {invitation.role}
             </span>
           </div>
@@ -173,7 +182,8 @@ export default function Invite() {
 
         {/* Footer */}
         <p className="text-xs text-muted-foreground text-center mt-6">
-          By accepting, you'll join the workspace and can start collaborating immediately.
+          By accepting, you'll join the workspace and can start collaborating
+          immediately.
         </p>
       </Card>
     </div>

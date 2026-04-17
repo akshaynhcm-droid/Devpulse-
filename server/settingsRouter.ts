@@ -4,28 +4,9 @@
  */
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import crypto from "crypto";
 import { router, protectedProcedure } from "./_core/trpc";
 import * as db from "./db";
-import { sendPasswordResetEmail } from "./email";
-import { ENV } from "./_core/env";
-
-// ============================================================================
-// PASSWORD UTILITIES
-// ============================================================================
-
-function hashPassword(password: string): string {
-  // Simple SHA-256 hash for now - in production use bcrypt or argon2
-  return crypto.createHash("sha256").update(password + ENV.cookieSecret).digest("hex");
-}
-
-function verifyPassword(password: string, hashedPassword: string): boolean {
-  return hashPassword(password) === hashedPassword;
-}
-
-function generateSessionToken(): string {
-  return crypto.randomBytes(32).toString("hex");
-}
+import { hashPassword, verifyPassword } from "./utils/password";
 
 // ============================================================================
 // SETTINGS ROUTER
@@ -38,7 +19,10 @@ export const settingsRouter = router({
 
   getProfile: protectedProcedure.query(async ({ ctx }) => {
     if (!ctx.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED", message: "Not authenticated" });
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "Not authenticated",
+      });
     }
 
     const user = await db.getUserById(ctx.user.id);
@@ -66,7 +50,10 @@ export const settingsRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       if (!ctx.user) {
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "Not authenticated" });
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Not authenticated",
+        });
       }
 
       const updates: { name?: string; email?: string } = {};
@@ -93,7 +80,10 @@ export const settingsRouter = router({
 
   getSessions: protectedProcedure.query(async ({ ctx }) => {
     if (!ctx.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED", message: "Not authenticated" });
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "Not authenticated",
+      });
     }
 
     const sessions = await db.getUserSessions(ctx.user.id);
@@ -113,7 +103,10 @@ export const settingsRouter = router({
     .input(z.object({ sessionId: z.string() }))
     .mutation(async ({ input, ctx }) => {
       if (!ctx.user) {
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "Not authenticated" });
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Not authenticated",
+        });
       }
 
       await db.revokeUserSession(input.sessionId);
@@ -131,7 +124,10 @@ export const settingsRouter = router({
 
   revokeAllSessions: protectedProcedure.mutation(async ({ ctx }) => {
     if (!ctx.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED", message: "Not authenticated" });
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "Not authenticated",
+      });
     }
 
     await db.revokeAllUserSessions(ctx.user.id);
@@ -156,7 +152,10 @@ export const settingsRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       if (!ctx.user) {
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "Not authenticated" });
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Not authenticated",
+        });
       }
 
       // Get user with password
@@ -165,12 +164,21 @@ export const settingsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
       }
 
-      // Verify current password (stored in openId field for now)
-      if (!verifyPassword(input.currentPassword, user.openId)) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Current password is incorrect" });
+      if (!user.passwordHash) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This account was created via SSO and has no password set.",
+        });
       }
 
-      // Hash and update new password
+      if (!verifyPassword(input.currentPassword, user.passwordHash)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Current password is incorrect",
+        });
+      }
+
+      // Hash and update new password (PBKDF2-SHA512 via ./utils/password)
       const hashedNewPassword = hashPassword(input.newPassword);
       await db.updateUserPassword(ctx.user.id, hashedNewPassword);
 
@@ -195,7 +203,10 @@ export const settingsRouter = router({
 
   getEmailPreferences: protectedProcedure.query(async ({ ctx }) => {
     if (!ctx.user) {
-      throw new TRPCError({ code: "UNAUTHORIZED", message: "Not authenticated" });
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "Not authenticated",
+      });
     }
 
     const prefs = await db.getOrCreateEmailPreferences(ctx.user.id);
@@ -220,7 +231,10 @@ export const settingsRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       if (!ctx.user) {
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "Not authenticated" });
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Not authenticated",
+        });
       }
 
       await db.updateEmailPreferences(ctx.user.id, input);
@@ -244,7 +258,10 @@ export const settingsRouter = router({
     .input(z.object({ limit: z.number().int().min(1).max(100).default(50) }))
     .query(async ({ input, ctx }) => {
       if (!ctx.user) {
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "Not authenticated" });
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Not authenticated",
+        });
       }
 
       const logs = await db.getAuditLogForUser(ctx.user.id, input.limit);
@@ -268,7 +285,10 @@ export const settingsRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       if (!ctx.user) {
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "Not authenticated" });
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Not authenticated",
+        });
       }
 
       // Create final audit log before deletion

@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { router, protectedProcedure, publicProcedure, adminProcedure } from "../_core/trpc";
+import {
+  router,
+  protectedProcedure,
+  publicProcedure,
+  adminProcedure,
+} from "../_core/trpc";
 import * as db from "../db";
 import { nanoid } from "nanoid";
 import {
@@ -46,7 +51,9 @@ export const paymentsRouter = router({
       return { status: "none", plan: subscription?.plan || "free" };
     }
 
-    const razorpayData = await getSubscriptionDetails(subscription.razorpaySubscriptionId);
+    const razorpayData = await getSubscriptionDetails(
+      subscription.razorpaySubscriptionId
+    );
 
     if (razorpayData.status !== subscription.status) {
       await db.updateSubscriptionStatus(subscription.id, razorpayData.status);
@@ -55,8 +62,12 @@ export const paymentsRouter = router({
     return {
       status: razorpayData.status,
       plan: subscription.plan,
-      currentPeriodStart: razorpayData.current_start ? new Date(razorpayData.current_start * 1000) : null,
-      currentPeriodEnd: razorpayData.current_end ? new Date(razorpayData.current_end * 1000) : null,
+      currentPeriodStart: razorpayData.current_start
+        ? new Date(razorpayData.current_start * 1000)
+        : null,
+      currentPeriodEnd: razorpayData.current_end
+        ? new Date(razorpayData.current_end * 1000)
+        : null,
       cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
     };
   }),
@@ -69,7 +80,10 @@ export const paymentsRouter = router({
         throw new Error("No active subscription found");
       }
 
-      const result = await cancelRazorpaySubscription(subscription.razorpaySubscriptionId, !input.immediately);
+      const result = await cancelRazorpaySubscription(
+        subscription.razorpaySubscriptionId,
+        !input.immediately
+      );
 
       await db.updateSubscriptionStatus(
         subscription.id,
@@ -90,7 +104,9 @@ export const paymentsRouter = router({
       return { invoices: [] };
     }
 
-    const invoices = await getSubscriptionInvoices(subscription.razorpaySubscriptionId);
+    const invoices = await getSubscriptionInvoices(
+      subscription.razorpaySubscriptionId
+    );
 
     for (const invoice of invoices) {
       if (invoice.payment_id && invoice.amount) {
@@ -113,7 +129,7 @@ export const paymentsRouter = router({
     const payments = await db.getPaymentsByUserId(ctx.user.id);
 
     return {
-      invoices: payments.map((p) => ({
+      invoices: payments.map(p => ({
         id: p.id,
         razorpayPaymentId: p.razorpayPaymentId,
         amount: p.amount,
@@ -141,7 +157,9 @@ export const paymentsRouter = router({
       switch (event.event) {
         case "subscription.activated":
           if (event.subscriptionId) {
-            const sub = await db.getSubscriptionByRazorpayId(event.subscriptionId);
+            const sub = await db.getSubscriptionByRazorpayId(
+              event.subscriptionId
+            );
             if (sub) {
               await db.updateSubscriptionStatus(sub.id, "active");
               await db.updateUserPlan(sub.userId, sub.plan);
@@ -152,7 +170,9 @@ export const paymentsRouter = router({
         case "subscription.charged":
           if (event.data.payload.payment?.entity) {
             const payment = event.data.payload.payment.entity;
-            const sub = await db.getSubscriptionByRazorpayId(payment.subscription_id);
+            const sub = await db.getSubscriptionByRazorpayId(
+              payment.subscription_id
+            );
             if (sub) {
               await db.createOrUpdatePayment({
                 id: nanoid(),
@@ -171,7 +191,9 @@ export const paymentsRouter = router({
 
         case "subscription.cancelled":
           if (event.subscriptionId) {
-            const sub = await db.getSubscriptionByRazorpayId(event.subscriptionId);
+            const sub = await db.getSubscriptionByRazorpayId(
+              event.subscriptionId
+            );
             if (sub) {
               await db.updateSubscriptionStatus(sub.id, "cancelled");
               await db.updateUserPlan(sub.userId, "free");
@@ -182,7 +204,9 @@ export const paymentsRouter = router({
         case "payment.failed":
           if (event.data.payload.payment?.entity) {
             const payment = event.data.payload.payment.entity;
-            const sub = await db.getSubscriptionByRazorpayId(payment.subscription_id);
+            const sub = await db.getSubscriptionByRazorpayId(
+              payment.subscription_id
+            );
             if (sub) {
               await db.updateSubscriptionStatus(sub.id, "past_due");
             }
@@ -192,7 +216,11 @@ export const paymentsRouter = router({
         case "refund.processed":
           if (event.data.payload.refund?.entity) {
             const refund = event.data.payload.refund.entity;
-            await db.updatePaymentRefundStatus(refund.payment_id, refund.amount / 100, "full");
+            await db.updatePaymentRefundStatus(
+              refund.payment_id,
+              refund.amount / 100,
+              "full"
+            );
           }
           break;
       }
@@ -238,8 +266,13 @@ export const paymentsRouter = router({
         throw new Error("Payment not found");
       }
 
-      const refundAmount = input.amount || parseFloat(payment.amount as string) * 100;
-      const result = await processRefund(input.paymentId, refundAmount, input.reason);
+      const refundAmount =
+        input.amount || parseFloat(payment.amount as string) * 100;
+      const result = await processRefund(
+        input.paymentId,
+        refundAmount,
+        input.reason
+      );
 
       await db.updatePaymentRefundStatus(
         input.paymentId,

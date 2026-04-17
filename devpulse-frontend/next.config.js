@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
-const TS_BACKEND_URL = process.env.NEXT_PUBLIC_TS_API_URL || "http://localhost:3000";
-const PYTHON_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const TS_BACKEND_URL =
+  process.env.NEXT_PUBLIC_TS_API_URL || "http://localhost:3000";
+const PYTHON_API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 const nextConfig = {
   async rewrites() {

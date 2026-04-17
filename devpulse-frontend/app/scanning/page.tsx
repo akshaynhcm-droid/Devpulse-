@@ -31,9 +31,12 @@ export default function ScanningPage() {
 
   const severityColor = (s: string) => {
     switch (s) {
-      case "hardcoded_secret": return "text-red-400 bg-red-900/30 border-red-500";
-      case "shadow_api": return "text-yellow-400 bg-yellow-900/30 border-yellow-500";
-      default: return "text-orange-400 bg-orange-900/30 border-orange-500";
+      case "hardcoded_secret":
+        return "text-red-400 bg-red-900/30 border-red-500";
+      case "shadow_api":
+        return "text-yellow-400 bg-yellow-900/30 border-yellow-500";
+      default:
+        return "text-orange-400 bg-orange-900/30 border-orange-500";
     }
   };
 
@@ -42,8 +45,12 @@ export default function ScanningPage() {
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-blue-400">Security Scanner</h1>
-            <p className="text-gray-400 mt-1">Scan code for vulnerabilities and shadow APIs</p>
+            <h1 className="text-3xl font-bold text-blue-400">
+              Security Scanner
+            </h1>
+            <p className="text-gray-400 mt-1">
+              Scan code for vulnerabilities and shadow APIs
+            </p>
           </div>
           <Link href="/dashboard" className="text-blue-400 hover:text-blue-300">
             &larr; Back to Dashboard
@@ -81,7 +88,9 @@ export default function ScanningPage() {
                 </p>
               ) : findings.length === 0 ? (
                 <div className="text-center py-12">
-                  <p className="text-green-400 text-lg font-bold">No Issues Found</p>
+                  <p className="text-green-400 text-lg font-bold">
+                    No Issues Found
+                  </p>
                   <p className="text-gray-400 mt-2">Your code looks clean!</p>
                 </div>
               ) : (
@@ -92,10 +101,16 @@ export default function ScanningPage() {
                       className={`p-4 rounded-lg border ${severityColor(f.type)}`}
                     >
                       <div className="flex justify-between items-start">
-                        <span className="font-bold">{f.type?.replace(/_/g, " ").toUpperCase()}</span>
-                        <span className="text-xs opacity-75">{f.key || f.url || ""}</span>
+                        <span className="font-bold">
+                          {f.type?.replace(/_/g, " ").toUpperCase()}
+                        </span>
+                        <span className="text-xs opacity-75">
+                          {f.key || f.url || ""}
+                        </span>
                       </div>
-                      <p className="text-sm mt-2 opacity-80">{f.reason || f.match || ""}</p>
+                      <p className="text-sm mt-2 opacity-80">
+                        {f.reason || f.match || ""}
+                      </p>
                     </div>
                   ))}
                 </div>

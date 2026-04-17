@@ -13,25 +13,30 @@ This document details security vulnerabilities discovered during codebase audit 
 **Issue:** Using SHA-256 for password hashing without salt or iterations is cryptographically weak.
 
 **Current Code:**
+
 ```typescript
 const passwordHash = crypto
-  .createHash('sha256')
+  .createHash("sha256")
   .update(input.newPassword + process.env.COOKIE_SECRET)
-  .digest('hex');
+  .digest("hex");
 ```
 
 **Fix Required:**
+
 1. Import the secure password utility:
+
 ```typescript
-import { hashPassword, verifyPassword } from './utils/password';
+import { hashPassword, verifyPassword } from "./utils/password";
 ```
 
 2. Replace the weak hashing:
+
 ```typescript
 const passwordHash = await hashPassword(input.newPassword);
 ```
 
 3. For verification in login:
+
 ```typescript
 const isValid = await verifyPassword(input.password, user.passwordHash);
 ```
@@ -43,10 +48,11 @@ const isValid = await verifyPassword(input.password, user.passwordHash);
 **Issue:** Clients can send any `userId` without server-side verification.
 
 **Current Code:**
+
 ```typescript
-ws.on('message', (message) => {
+ws.on("message", message => {
   const data = JSON.parse(message);
-  if (data.type === 'auth') {
+  if (data.type === "auth") {
     client.userId = data.userId; // ATTACKER CAN SPOOF THIS
   }
 });
@@ -55,12 +61,13 @@ ws.on('message', (message) => {
 **Fix Required:** Verify userId from session cookie or token:
 
 ```typescript
-import { verifyWebSocketAuth } from './utils/security';
+import { verifyWebSocketAuth } from "./utils/security";
 
-ws.on('message', async (message) => {
+ws.on("message", async message => {
   const data = JSON.parse(message);
-  if (data.type === 'auth') {
-    const sessionToken = data.sessionToken || extractCookie(ws, 'session_token');
+  if (data.type === "auth") {
+    const sessionToken =
+      data.sessionToken || extractCookie(ws, "session_token");
     const verifiedUserId = await verifyWebSocketAuth(sessionToken);
     if (verifiedUserId) {
       client.userId = verifiedUserId;
@@ -76,6 +83,7 @@ ws.on('message', async (message) => {
 **Issue:** Signature verification crashes when Razorpay sends null signature during testing.
 
 **Current Code:**
+
 ```typescript
 const generatedSignature = crypto
   .createHmac('sha256', process.env.RAZORPAY_WEBHOOK_SECRET!)
@@ -86,12 +94,18 @@ if (signature !== generatedSignature) { // CRASHES if signature is null
 ```
 
 **Fix Required:**
+
 ```typescript
-import { verifyWebhookSignature } from '../utils/security';
+import { verifyWebhookSignature } from "../utils/security";
 
 // In the webhook handler:
-if (!verifyWebhookSignature(body, signature, process.env.RAZORPAY_WEBHOOK_SECRET!)) {
-  throw new TRPCError({ code: 'FORBIDDEN', message: 'Invalid webhook signature' });
+if (
+  !verifyWebhookSignature(body, signature, process.env.RAZORPAY_WEBHOOK_SECRET!)
+) {
+  throw new TRPCError({
+    code: "FORBIDDEN",
+    message: "Invalid webhook signature",
+  });
 }
 ```
 
@@ -100,30 +114,33 @@ The `verifyWebhookSignature` function handles null/missing signatures gracefully
 ## Files Created
 
 ### 1. `server/utils/password.ts`
+
 - PBKDF2-SHA512 password hashing with 100,000 iterations
 - 32-byte random salt per password
 - 64-byte hash output
 - Constant-time comparison via `crypto.timingSafeEqual`
 
 ### 2. `server/utils/security.ts`
+
 - `verifyWebSocketAuth()` - Verifies WebSocket authentication from session
 - `verifyWebhookSignature()` - Handles null signatures gracefully
 - `generateCSRFToken()` / `verifyCSRFToken()` - CSRF protection
 - `sanitizeInput()` - Input sanitization helpers
 
 ### 3. `server/utils/webhookFix.ts`
+
 - Dedicated webhook verification module
 - Timing-safe comparison
 - Proper error handling
 
 ## Files Requiring Manual Edits
 
-| File | Line(s) | Change Required |
-|------|---------|-----------------|
-| `server/routers.ts` | ~76 | Replace SHA-256 with `hashPassword()` |
-| `server/settingsRouter.ts` | ~19 | Replace SHA-256 with `hashPassword()` |
-| `server/_core/index.ts` | ~330-346 | Replace webhook verification logic |
-| `server/websocket.ts` | auth handler | Add session verification |
+| File                       | Line(s)      | Change Required                       |
+| -------------------------- | ------------ | ------------------------------------- |
+| `server/routers.ts`        | ~76          | Replace SHA-256 with `hashPassword()` |
+| `server/settingsRouter.ts` | ~19          | Replace SHA-256 with `hashPassword()` |
+| `server/_core/index.ts`    | ~330-346     | Replace webhook verification logic    |
+| `server/websocket.ts`      | auth handler | Add session verification              |
 
 ## Migration Strategy
 
@@ -132,12 +149,14 @@ The `verifyWebhookSignature` function handles null/missing signatures gracefully
 The `hashPassword` utility supports legacy hash format for migration:
 
 ```typescript
-import { hashPassword, verifyPassword, needsMigration } from './utils/password';
+import { hashPassword, verifyPassword, needsMigration } from "./utils/password";
 
 // During login:
 if (await needsMigration(user.passwordHash)) {
   // Migrate to new hash format
-  await db.updateUser(user.id, { passwordHash: await hashPassword(input.password) });
+  await db.updateUser(user.id, {
+    passwordHash: await hashPassword(input.password),
+  });
 }
 ```
 

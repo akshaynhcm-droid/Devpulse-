@@ -3,7 +3,16 @@
 import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { format } from "date-fns";
-import { Loader2, CreditCard, Download, AlertCircle, Check, X, Crown, Zap } from "lucide-react";
+import {
+  Loader2,
+  CreditCard,
+  Download,
+  AlertCircle,
+  Check,
+  X,
+  Crown,
+  Zap,
+} from "lucide-react";
 
 interface Invoice {
   id: string;
@@ -70,7 +79,9 @@ export default function BillingPage() {
 
     setIsProcessing(true);
     try {
-      const result = await trpc.payment.createSubscription.mutate({ plan: planId as "pro" | "enterprise" });
+      const result = await trpc.payment.createSubscription.mutate({
+        plan: planId as "pro" | "enterprise",
+      });
 
       // Load Razorpay checkout
       const script = document.createElement("script");
@@ -145,8 +156,9 @@ export default function BillingPage() {
     }).format(num);
   };
 
-  const currentPlan = plans.find((p) => p.id === subscription?.plan);
-  const isPaidPlan = subscription?.plan !== "free" && subscription?.plan !== "none";
+  const currentPlan = plans.find(p => p.id === subscription?.plan);
+  const isPaidPlan =
+    subscription?.plan !== "free" && subscription?.plan !== "none";
 
   if (isLoading) {
     return (
@@ -196,7 +208,11 @@ export default function BillingPage() {
 
               {isPaidPlan && subscription?.currentPeriodEnd && (
                 <p className="text-slate-400">
-                  Next billing date: {format(new Date(subscription.currentPeriodEnd), "MMMM d, yyyy")}
+                  Next billing date:{" "}
+                  {format(
+                    new Date(subscription.currentPeriodEnd),
+                    "MMMM d, yyyy"
+                  )}
                 </p>
               )}
             </div>
@@ -214,7 +230,7 @@ export default function BillingPage() {
 
         {/* Available Plans */}
         <div className="grid gap-4 md:grid-cols-3">
-          {plans.map((plan) => (
+          {plans.map(plan => (
             <div
               key={plan.id}
               className={`bg-slate-900/50 border rounded-lg p-6 ${
@@ -224,8 +240,12 @@ export default function BillingPage() {
               }`}
             >
               <div className="flex items-center gap-2 mb-4">
-                {plan.id === "pro" && <Zap className="w-5 h-5 text-indigo-400" />}
-                {plan.id === "enterprise" && <Crown className="w-5 h-5 text-amber-400" />}
+                {plan.id === "pro" && (
+                  <Zap className="w-5 h-5 text-indigo-400" />
+                )}
+                {plan.id === "enterprise" && (
+                  <Crown className="w-5 h-5 text-amber-400" />
+                )}
                 <h3 className="font-semibold">{plan.name}</h3>
               </div>
 
@@ -241,7 +261,10 @@ export default function BillingPage() {
 
               <ul className="space-y-2 mb-6">
                 {plan.features.slice(0, 4).map((feature, idx) => (
-                  <li key={idx} className="flex items-start gap-2 text-sm text-slate-300">
+                  <li
+                    key={idx}
+                    className="flex items-start gap-2 text-sm text-slate-300"
+                  >
                     <Check className="w-4 h-4 text-green-400 mt-0.5 shrink-0" />
                     {feature}
                   </li>
@@ -300,12 +323,17 @@ export default function BillingPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {invoices.map((invoice) => (
-                    <tr key={invoice.id} className="border-b border-slate-800/50">
+                  {invoices.map(invoice => (
+                    <tr
+                      key={invoice.id}
+                      className="border-b border-slate-800/50"
+                    >
                       <td className="py-4 text-sm">
                         {format(new Date(invoice.createdAt), "MMM d, yyyy")}
                       </td>
-                      <td className="py-4 text-sm">{invoice.description || "Subscription payment"}</td>
+                      <td className="py-4 text-sm">
+                        {invoice.description || "Subscription payment"}
+                      </td>
                       <td className="py-4 text-sm">
                         {formatAmount(invoice.amount, invoice.currency)}
                       </td>
@@ -351,8 +379,9 @@ export default function BillingPage() {
               </div>
 
               <p className="text-slate-300 mb-6">
-                You can cancel immediately or at the end of your billing period. If you cancel
-                immediately, you&apos;ll lose access to premium features right away.
+                You can cancel immediately or at the end of your billing period.
+                If you cancel immediately, you&apos;ll lose access to premium
+                features right away.
               </p>
 
               <div className="flex gap-3">

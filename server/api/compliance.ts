@@ -1,7 +1,10 @@
 import { z } from "zod";
 import { router, protectedProcedure, editorProcedure } from "../_core/trpc";
 import * as db from "../db";
-import { generateOWASPRequirements, generatePCIDSSRequirements } from "../utils/scanning";
+import {
+  generateOWASPRequirements,
+  generatePCIDSSRequirements,
+} from "../utils/scanning";
 import PDFDocument from "pdfkit";
 
 export const complianceRouter = router({
@@ -23,8 +26,12 @@ export const complianceRouter = router({
           ? generateOWASPRequirements(collection.data)
           : generatePCIDSSRequirements(collection.data);
 
-      const metRequirements = requirements.filter((r: any) => r.status === "met").length;
-      const manualRequirements = requirements.filter((r: any) => r.status === "manual_review").length;
+      const metRequirements = requirements.filter(
+        (r: any) => r.status === "met"
+      ).length;
+      const manualRequirements = requirements.filter(
+        (r: any) => r.status === "manual_review"
+      ).length;
       const complianceScore = (metRequirements / requirements.length) * 100;
 
       const report = await db.createComplianceReport(
@@ -43,7 +50,8 @@ export const complianceRouter = router({
         totalRequirements: requirements.length,
         metRequirements,
         manualRequirements,
-        notMetRequirements: requirements.length - metRequirements - manualRequirements,
+        notMetRequirements:
+          requirements.length - metRequirements - manualRequirements,
         requirements,
       };
     }),
@@ -62,7 +70,9 @@ export const complianceRouter = router({
         throw new Error("Collection not found or access denied");
       }
 
-      const reports = await db.getComplianceReportsByCollectionId(input.collectionId);
+      const reports = await db.getComplianceReportsByCollectionId(
+        input.collectionId
+      );
       const page = input.page ?? 1;
       const pageSize = input.pageSize ?? 20;
       const total = reports.length;
@@ -93,8 +103,10 @@ export const complianceRouter = router({
       }
 
       const requirements = report.requirementsData as any[];
-      const manualRequirements = requirements?.filter(r => r.status === "manual_review").length ?? 0;
-      const notMetRequirements = requirements?.filter(r => r.status === "not_met").length ?? 0;
+      const manualRequirements =
+        requirements?.filter(r => r.status === "manual_review").length ?? 0;
+      const notMetRequirements =
+        requirements?.filter(r => r.status === "not_met").length ?? 0;
 
       return {
         id: report.id,
@@ -119,9 +131,12 @@ export const complianceRouter = router({
 
       const collection = await db.getCollectionById(report.collectionId);
       const requirements = report.requirementsData as any[];
-      const metCount = requirements?.filter(r => r.status === "met").length ?? 0;
-      const manualCount = requirements?.filter(r => r.status === "manual_review").length ?? 0;
-      const notMetCount = requirements?.filter(r => r.status === "not_met").length ?? 0;
+      const metCount =
+        requirements?.filter(r => r.status === "met").length ?? 0;
+      const manualCount =
+        requirements?.filter(r => r.status === "manual_review").length ?? 0;
+      const notMetCount =
+        requirements?.filter(r => r.status === "not_met").length ?? 0;
 
       // Generate PDF using PDFKit
       const pdfBuffer = await generateCompliancePDF({
@@ -161,22 +176,44 @@ async function generateCompliancePDF(data: {
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
-    const { report, collectionName, requirements, metCount, manualCount, notMetCount } = data;
+    const {
+      report,
+      collectionName,
+      requirements,
+      metCount,
+      manualCount,
+      notMetCount,
+    } = data;
     const reportType = report.reportType === "pci_dss" ? "PCI DSS" : "OWASP";
     const score = parseFloat(report.complianceScore as any);
 
     // Page 1: Header and Executive Summary
-    doc.fontSize(24).font("Helvetica-Bold").text("DevPulse Compliance Report", 50, 50);
-    doc.fontSize(14).font("Helvetica").text(`${reportType} Security Assessment`, 50, 80);
+    doc
+      .fontSize(24)
+      .font("Helvetica-Bold")
+      .text("DevPulse Compliance Report", 50, 50);
+    doc
+      .fontSize(14)
+      .font("Helvetica")
+      .text(`${reportType} Security Assessment`, 50, 80);
     doc.fontSize(12).text(`Collection: ${collectionName}`, 50, 105);
-    doc.fontSize(12).text(`Generated: ${new Date(report.createdAt).toLocaleDateString()}`, 50, 125);
+    doc
+      .fontSize(12)
+      .text(
+        `Generated: ${new Date(report.createdAt).toLocaleDateString()}`,
+        50,
+        125
+      );
     doc.fontSize(10).text(`Report ID: ${report.id}`, 50, 145);
 
     doc.moveDown(2);
 
     // Executive Summary Box
     doc.rect(50, doc.y, 500, 120).stroke("#2563eb");
-    doc.fontSize(16).font("Helvetica-Bold").text("Executive Summary", 60, doc.y + 10);
+    doc
+      .fontSize(16)
+      .font("Helvetica-Bold")
+      .text("Executive Summary", 60, doc.y + 10);
     doc.moveDown(0.5);
 
     doc.fontSize(14).font("Helvetica");
@@ -191,7 +228,10 @@ async function generateCompliancePDF(data: {
 
     // Page 2: Compliance Score Visualization
     doc.addPage();
-    doc.fontSize(20).font("Helvetica-Bold").text("Compliance Breakdown", 50, 50);
+    doc
+      .fontSize(20)
+      .font("Helvetica-Bold")
+      .text("Compliance Breakdown", 50, 50);
     doc.moveDown();
 
     // Simple bar chart
@@ -203,7 +243,10 @@ async function generateCompliancePDF(data: {
     if (metCount > 0) {
       const metWidth = (metCount / report.totalRequirements) * barWidth;
       doc.rect(50, chartY, metWidth, barHeight).fill("#22c55e");
-      doc.fillColor("white").fontSize(12).text(`Met: ${metCount}`, 55, chartY + 5);
+      doc
+        .fillColor("white")
+        .fontSize(12)
+        .text(`Met: ${metCount}`, 55, chartY + 5);
     }
 
     // Manual review bar (yellow)
@@ -211,15 +254,22 @@ async function generateCompliancePDF(data: {
       const manualWidth = (manualCount / report.totalRequirements) * barWidth;
       const manualX = 50 + (metCount / report.totalRequirements) * barWidth;
       doc.rect(manualX, chartY, manualWidth, barHeight).fill("#eab308");
-      doc.fillColor("black").fontSize(12).text(`Review: ${manualCount}`, manualX + 5, chartY + 5);
+      doc
+        .fillColor("black")
+        .fontSize(12)
+        .text(`Review: ${manualCount}`, manualX + 5, chartY + 5);
     }
 
     // Not met bar (red)
     if (notMetCount > 0) {
       const notMetWidth = (notMetCount / report.totalRequirements) * barWidth;
-      const notMetX = 50 + ((metCount + manualCount) / report.totalRequirements) * barWidth;
+      const notMetX =
+        50 + ((metCount + manualCount) / report.totalRequirements) * barWidth;
       doc.rect(notMetX, chartY, notMetWidth, barHeight).fill("#ef4444");
-      doc.fillColor("white").fontSize(12).text(`Not Met: ${notMetCount}`, notMetX + 5, chartY + 5);
+      doc
+        .fillColor("white")
+        .fontSize(12)
+        .text(`Not Met: ${notMetCount}`, notMetX + 5, chartY + 5);
     }
 
     doc.fillColor("black");
@@ -239,11 +289,25 @@ async function generateCompliancePDF(data: {
         currentY = 50;
       }
 
-      const statusIcon = req.status === "met" ? "✓" : req.status === "manual_review" ? "?" : "✗";
-      const statusColor = req.status === "met" ? "#22c55e" : req.status === "manual_review" ? "#eab308" : "#ef4444";
-      const statusText = req.status === "met" ? "Met" : req.status === "manual_review" ? "Manual Review" : "Not Met";
+      const statusIcon =
+        req.status === "met" ? "✓" : req.status === "manual_review" ? "?" : "✗";
+      const statusColor =
+        req.status === "met"
+          ? "#22c55e"
+          : req.status === "manual_review"
+            ? "#eab308"
+            : "#ef4444";
+      const statusText =
+        req.status === "met"
+          ? "Met"
+          : req.status === "manual_review"
+            ? "Manual Review"
+            : "Not Met";
 
-      doc.fontSize(12).font("Helvetica-Bold").text(`[${req.id}] ${req.title}`, 50, currentY);
+      doc
+        .fontSize(12)
+        .font("Helvetica-Bold")
+        .text(`[${req.id}] ${req.title}`, 50, currentY);
       currentY += 20;
 
       doc.fontSize(10).font("Helvetica").fillColor(statusColor);
@@ -252,7 +316,9 @@ async function generateCompliancePDF(data: {
       currentY += 15;
 
       if (req.description) {
-        doc.fontSize(10).text(req.description, 50, currentY, { width: 500, align: "left" });
+        doc
+          .fontSize(10)
+          .text(req.description, 50, currentY, { width: 500, align: "left" });
         currentY += 30;
       }
 
@@ -268,7 +334,9 @@ async function generateCompliancePDF(data: {
     doc.text(`Generated: ${new Date().toISOString()}`, 50);
     doc.text(`Report Type: ${reportType}`, 50);
     doc.moveDown();
-    doc.fontSize(10).text("This report was generated by DevPulse Security Platform.", 50);
+    doc
+      .fontSize(10)
+      .text("This report was generated by DevPulse Security Platform.", 50);
     doc.text("For questions or support, contact support@devpulse.app", 50);
 
     doc.end();

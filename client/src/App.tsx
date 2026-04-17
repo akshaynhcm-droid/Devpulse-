@@ -49,10 +49,10 @@ function Router() {
       </Route>
 
       <Route path={"/collections/:id"}>
-        {() => (
+        {(params: { id: string }) => (
           <DashboardLayout>
             <PageErrorBoundary pageName="Collection Detail">
-              <CollectionDetail />
+              <CollectionDetail params={params} />
             </PageErrorBoundary>
           </DashboardLayout>
         )}

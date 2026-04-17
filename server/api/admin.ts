@@ -21,12 +21,20 @@ export const adminRouter = router({
     .mutation(async ({ input }) => {
       const payment = await db.getPaymentByRazorpayId(input.paymentId);
       if (!payment) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Payment not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Payment not found",
+        });
       }
 
-      const refundAmount = input.amount || parseFloat(payment.amount as string) * 100;
+      const refundAmount =
+        input.amount || parseFloat(payment.amount as string) * 100;
 
-      const result = await processRefund(input.paymentId, refundAmount, input.reason);
+      const result = await processRefund(
+        input.paymentId,
+        refundAmount,
+        input.reason
+      );
 
       await db.updatePaymentRefundStatus(
         input.paymentId,
@@ -39,8 +47,15 @@ export const adminRouter = router({
 
   getSystemStats: adminProcedure.query(async () => {
     const allUsers = await db.getAllUsers();
-    const activeUsers = allUsers.filter((u: any) => u.lastSignedIn && new Date(u.lastSignedIn) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
-    const proUsers = allUsers.filter((u: any) => u.plan === "pro" || u.plan === "enterprise");
+    const activeUsers = allUsers.filter(
+      (u: any) =>
+        u.lastSignedIn &&
+        new Date(u.lastSignedIn) >
+          new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+    );
+    const proUsers = allUsers.filter(
+      (u: any) => u.plan === "pro" || u.plan === "enterprise"
+    );
 
     return {
       totalUsers: allUsers.length,

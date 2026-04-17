@@ -99,10 +99,10 @@ devpulse-app/
 
 ### Frontend Structure Clarification
 
-| Directory | Framework | Purpose | Auth Required |
-|-----------|-----------|---------|---------------|
-| `devpulse-frontend/` | Next.js 14+ | **Main Product Dashboard** - Collections, scanning, analytics, team management, admin | Yes |
-| `client/` | Vite + React | **Marketing Website** - Landing page, pricing, about, contact | No |
+| Directory            | Framework    | Purpose                                                                               | Auth Required |
+| -------------------- | ------------ | ------------------------------------------------------------------------------------- | ------------- |
+| `devpulse-frontend/` | Next.js 14+  | **Main Product Dashboard** - Collections, scanning, analytics, team management, admin | Yes           |
+| `client/`            | Vite + React | **Marketing Website** - Landing page, pricing, about, contact                         | No            |
 
 **Note:** The `devpulse-frontend/` directory contains the actual DevPulse product interface. The `client/` directory is the public-facing marketing website.
 

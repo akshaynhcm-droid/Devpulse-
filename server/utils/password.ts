@@ -2,7 +2,7 @@
  * Password hashing utilities using Node.js built-in crypto module.
  * Uses PBKDF2 with SHA-512 for secure password storage.
  */
-import crypto from \"crypto\";
+import crypto from "crypto";
 
 const PBKDF2_ITERATIONS = 100000;
 const HASH_LENGTH = 64;
@@ -19,9 +19,9 @@ export function hashPassword(password: string): string {
     salt,
     PBKDF2_ITERATIONS,
     HASH_LENGTH,
-    \"sha512\"
+    "sha512"
   );
-  return `pbkdf2:sha512:${salt.toString(\"hex\")}:${hash.toString(\"hex\")}`;
+  return `pbkdf2:sha512:${salt.toString("hex")}:${hash.toString("hex")}`;
 }
 
 /**
@@ -34,33 +34,33 @@ export function verifyPassword(password: string, storedHash: string): boolean {
   }
 
   // Handle legacy SHA-256 hashes (for migration)
-  if (storedHash.length === 64 && !storedHash.includes(\":\")) {
+  if (storedHash.length === 64 && !storedHash.includes(":")) {
     const legacyHash = crypto
-      .createHash(\"sha256\")
+      .createHash("sha256")
       .update(password + process.env.COOKIE_SECRET)
-      .digest(\"hex\");
+      .digest("hex");
     return crypto.timingSafeEqual(
-      Buffer.from(legacyHash, \"hex\"),
-      Buffer.from(storedHash, \"hex\")
+      Buffer.from(legacyHash, "hex"),
+      Buffer.from(storedHash, "hex")
     );
   }
 
   // Handle new PBKDF2 hashes
-  if (storedHash.startsWith(\"pbkdf2:\")) {
-    const parts = storedHash.split(\":\");
+  if (storedHash.startsWith("pbkdf2:")) {
+    const parts = storedHash.split(":");
     if (parts.length !== 4) {
       return false;
     }
     const [, algorithm, saltHex, hashHex] = parts;
-    const salt = Buffer.from(saltHex, \"hex\");
-    const storedHashBuf = Buffer.from(hashHex, \"hex\");
+    const salt = Buffer.from(saltHex, "hex");
+    const storedHashBuf = Buffer.from(hashHex, "hex");
 
     const computedHash = crypto.pbkdf2Sync(
       password,
       salt,
       PBKDF2_ITERATIONS,
       HASH_LENGTH,
-      algorithm as \"sha512\"
+      algorithm as "sha512"
     );
 
     // Use constant-time comparison to prevent timing attacks
@@ -78,13 +78,13 @@ export function verifyPassword(password: string, storedHash: string): boolean {
  */
 export function needsRehash(storedHash: string): boolean {
   // Legacy SHA-256 hashes need rehashing
-  if (storedHash.length === 64 && !storedHash.includes(\":\")) {
+  if (storedHash.length === 64 && !storedHash.includes(":")) {
     return true;
   }
   // PBKDF2 hashes with different iterations need rehashing
-  if (storedHash.startsWith(\"pbkdf2:\")) {
-    const parts = storedHash.split(\":\");
-    const iterations = parseInt(parts[1]?.replace(\"sha\", \"\") || \"0\", 10);
+  if (storedHash.startsWith("pbkdf2:")) {
+    const parts = storedHash.split(":");
+    const iterations = parseInt(parts[1]?.replace("sha", "") || "0", 10);
     return iterations < PBKDF2_ITERATIONS;
   }
   return true;
@@ -94,5 +94,5 @@ export function needsRehash(storedHash: string): boolean {
  * Generate a secure random token.
  */
 export function generateSecureToken(length: number = 32): string {
-  return crypto.randomBytes(length).toString(\"hex\");
+  return crypto.randomBytes(length).toString("hex");
 }

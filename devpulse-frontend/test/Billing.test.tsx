@@ -46,10 +46,12 @@ function Billing() {
       </div>
 
       <div data-testid="plans-list">
-        {plans.map((p) => (
+        {plans.map(p => (
           <div key={p.id} data-testid={`plan-${p.id}`}>
             <h3>{p.name}</h3>
-            <p>${p.amount / 100}/{p.interval}</p>
+            <p>
+              ${p.amount / 100}/{p.interval}
+            </p>
             <ul data-testid={`features-${p.id}`}>
               {p.features?.map((f: string, i: number) => (
                 <li key={i}>{f}</li>
@@ -95,7 +97,12 @@ describe("Billing", () => {
       name: "Enterprise",
       amount: 499900,
       interval: "month",
-      features: ["Everything in Pro", "SSO", "Priority Support", "Custom Contracts"],
+      features: [
+        "Everything in Pro",
+        "SSO",
+        "Priority Support",
+        "Custom Contracts",
+      ],
     },
   ];
 
@@ -147,7 +154,9 @@ describe("Billing", () => {
       expect(screen.getByTestId("features-pro")).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId("features-pro")).toHaveTextContent("Unlimited Collections");
+    expect(screen.getByTestId("features-pro")).toHaveTextContent(
+      "Unlimited Collections"
+    );
     expect(screen.getByTestId("features-enterprise")).toHaveTextContent("SSO");
   });
 

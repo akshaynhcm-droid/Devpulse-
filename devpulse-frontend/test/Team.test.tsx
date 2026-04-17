@@ -48,33 +48,35 @@ function Team() {
         <input
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={e => setEmail(e.target.value)}
           placeholder="Enter email"
           data-testid="email-input"
           required
         />
         <select
           value={role}
-          onChange={(e) => setRole(e.target.value)}
+          onChange={e => setRole(e.target.value)}
           data-testid="role-select"
         >
           <option value="viewer">Viewer</option>
           <option value="editor">Editor</option>
           <option value="admin">Admin</option>
         </select>
-        <button type="submit" data-testid="invite-btn">Invite</button>
+        <button type="submit" data-testid="invite-btn">
+          Invite
+        </button>
       </form>
 
       {invited && <div data-testid="success-msg">Invitation sent!</div>}
 
       <ul data-testid="members-list">
-        {members.map((m) => (
+        {members.map(m => (
           <li key={m.id} data-testid={`member-${m.id}`}>
             <span>{m.email}</span>
             <span data-testid={`member-role-${m.id}`}>{m.role}</span>
             <select
               value={m.role}
-              onChange={(e) => updateRole(m.id, e.target.value)}
+              onChange={e => updateRole(m.id, e.target.value)}
               data-testid={`role-update-${m.id}`}
             >
               <option value="viewer">Viewer</option>
@@ -162,7 +164,9 @@ describe("Team", () => {
       expect(screen.getByTestId("members-list")).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId("member-m1")).toHaveTextContent("alice@example.com");
+    expect(screen.getByTestId("member-m1")).toHaveTextContent(
+      "alice@example.com"
+    );
     expect(screen.getByTestId("member-role-m1")).toHaveTextContent("admin");
   });
 

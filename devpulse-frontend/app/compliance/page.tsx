@@ -40,7 +40,7 @@ export default function CompliancePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           framework: selectedFramework,
-          collection_id: selectedCollection || undefined
+          collection_id: selectedCollection || undefined,
         }),
       });
       if (res.ok) fetchReports();
@@ -62,8 +62,12 @@ export default function CompliancePage() {
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-blue-400">Compliance Reports</h1>
-            <p className="text-gray-400 mt-1">PCI DSS and OWASP compliance assessment</p>
+            <h1 className="text-3xl font-bold text-blue-400">
+              Compliance Reports
+            </h1>
+            <p className="text-gray-400 mt-1">
+              PCI DSS and OWASP compliance assessment
+            </p>
           </div>
           <Link href="/dashboard" className="text-blue-400 hover:text-blue-300">
             &larr; Dashboard
@@ -72,10 +76,12 @@ export default function CompliancePage() {
 
         <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Compliance Framework</label>
+            <label className="block text-sm text-gray-400 mb-1">
+              Compliance Framework
+            </label>
             <select
               value={selectedFramework}
-              onChange={(e) => setSelectedFramework(e.target.value)}
+              onChange={e => setSelectedFramework(e.target.value)}
               className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none"
             >
               <option value="pci_dss">PCI DSS</option>
@@ -83,14 +89,16 @@ export default function CompliancePage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Select Collection (Optional)</label>
+            <label className="block text-sm text-gray-400 mb-1">
+              Select Collection (Optional)
+            </label>
             <select
               value={selectedCollection}
-              onChange={(e) => setSelectedCollection(e.target.value)}
+              onChange={e => setSelectedCollection(e.target.value)}
               className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none"
             >
               <option value="">-- Select All Collections --</option>
-              {collections.map((col) => (
+              {collections.map(col => (
                 <option key={col.id} value={col.id}>
                   {col.name}
                 </option>
@@ -109,22 +117,33 @@ export default function CompliancePage() {
         {loading ? (
           <p className="text-gray-400">Loading reports...</p>
         ) : reports.length === 0 ? (
-          <p className="text-gray-500 text-center py-12">No compliance reports yet.</p>
+          <p className="text-gray-500 text-center py-12">
+            No compliance reports yet.
+          </p>
         ) : (
           <div className="space-y-3">
             {reports.map((report: any) => (
-              <div key={report.id} className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+              <div
+                key={report.id}
+                className="bg-gray-800 p-6 rounded-lg border border-gray-700"
+              >
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="text-lg font-semibold">{report.framework}</h3>
-                    <p className="text-sm text-gray-400">{report.id} - {report.created_at}</p>
+                    <h3 className="text-lg font-semibold">
+                      {report.framework}
+                    </h3>
+                    <p className="text-sm text-gray-400">
+                      {report.id} - {report.created_at}
+                    </p>
                   </div>
                   <div>
                     <p className="text-4xl font-bold">{report.score}</p>
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-400">{report.total_requirements} requirements</p>
+                  <p className="text-sm text-gray-400">
+                    {report.total_requirements} requirements
+                  </p>
                   <div className="flex gap-4 mt-2 text-xs text-gray-500">
                     <span>{report.met_count} met</span>
                     <span>{report.not_met_count} not met</span>

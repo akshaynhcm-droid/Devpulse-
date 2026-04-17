@@ -11,6 +11,7 @@ The DevPulse VS Code extension has been analyzed and the following issues have b
 **Problem:** The extension defaults to `https://api.devpulse.io` which doesn't exist. The actual backend is at `localhost:3000` (dev) or needs to be configured via environment variables.
 
 **Current configuration in `package.json`:**
+
 ```json
 {
   ...
@@ -28,6 +29,7 @@ The DevPulse VS Code extension has been analyzed and the following issues have b
 ```
 
 **Fix Applied:**
+
 - Created `server/api/vscodeExtension.ts` with proper endpoints
 - Endpoints are accessible via tRPC at `/trpc/vscodeExtension.*`
 
@@ -36,12 +38,14 @@ The DevPulse VS Code extension has been analyzed and the following issues have b
 **Problem:** The extension calls `validateApiKey()` but the backend doesn't have this endpoint. The backend uses Manus OAuth authentication, not API key validation.
 
 **Extension calls:**
+
 ```typescript
 // src/auth/authManager.ts
 const validation = await this.apiClient.validateApiKey(this.apiKey);
 ```
 
 **Fix Applied:**
+
 - Created `vscodeExtension.validateApiKey` endpoint in `server/api/vscodeExtension.ts`
 - Created `db.updateUserApiKey()` helper for generating and storing API keys
 - Added `db.getUserByApiKey()` for validating API keys
@@ -51,6 +55,7 @@ const validation = await this.apiClient.validateApiKey(this.apiKey);
 **Problem:** The extension sends API key with requests but the backend doesn't validate it server-side.
 
 **Fix Applied:**
+
 - Added `generateApiKey` endpoint for users to generate their API keys
 - Added `validateApiKey` endpoint for extension authentication
 - Created middleware pattern for API key validation in tRPC procedures
@@ -60,6 +65,7 @@ const validation = await this.apiClient.validateApiKey(this.apiKey);
 **Problem:** The extension tracks activity but doesn't integrate with the security scanning features.
 
 **Fix Applied:**
+
 - Added `recordActivity` endpoint to store VS Code activity
 - Added `getScanSummary` endpoint to display scan status in VS Code
 - Added `getRecentFindings` endpoint for inline finding display
@@ -71,17 +77,17 @@ const validation = await this.apiClient.validateApiKey(this.apiKey);
 
 New tRPC router providing endpoints for the VS Code extension:
 
-| Endpoint | Description |
-|----------|-------------|
-| `validateApiKey` | Validate API key and return user info |
-| `recordActivity` | Store activity from VS Code extension |
-| `getDashboardData` | Get dashboard summary for extension |
-| `getScanSummary` | Get scan status for a collection |
-| `triggerScan` | Start a new scan from VS Code |
-| `getRecentFindings` | Get recent findings for status display |
-| `updateFindingStatus` | Update finding status from VS Code |
-| `generateApiKey` | Generate new API key for user |
-| `getExtensionSettings` | Get user preferences for extension |
+| Endpoint               | Description                            |
+| ---------------------- | -------------------------------------- |
+| `validateApiKey`       | Validate API key and return user info  |
+| `recordActivity`       | Store activity from VS Code extension  |
+| `getDashboardData`     | Get dashboard summary for extension    |
+| `getScanSummary`       | Get scan status for a collection       |
+| `triggerScan`          | Start a new scan from VS Code          |
+| `getRecentFindings`    | Get recent findings for status display |
+| `updateFindingStatus`  | Update finding status from VS Code     |
+| `generateApiKey`       | Generate new API key for user          |
+| `getExtensionSettings` | Get user preferences for extension     |
 
 ## Database Updates Required
 
@@ -122,10 +128,7 @@ export async function recordVSCodeActivity(
 export async function getRecentFindingsForUser(userId: string, limit: number) {
   const db = await getDb();
   return db.query.findings.findMany({
-    where: and(
-      eq(findings.userId, userId),
-      ne(findings.status, 'dismissed')
-    ),
+    where: and(eq(findings.userId, userId), ne(findings.status, "dismissed")),
     orderBy: desc(findings.createdAt),
     limit,
   });
@@ -135,10 +138,7 @@ export async function getRecentFindingsForUser(userId: string, limit: number) {
 export async function getOpenFindingsCount(userId: string) {
   const db = await getDb();
   return db.query.findings.findMany({
-    where: and(
-      eq(findings.userId, userId),
-      eq(findings.status, 'open')
-    ),
+    where: and(eq(findings.userId, userId), eq(findings.status, "open")),
   });
 }
 ```
@@ -149,13 +149,15 @@ Create new table for VS Code activity tracking:
 
 ```typescript
 // drizzle/schema.ts
-export const vscodeActivities = pgTable('vscode_activities', {
-  id: text('id').primaryKey(),
-  userId: text('user_id').references(() => users.id).notNull(),
-  type: text('type').notNull(), // 'heartbeat', 'file_change', etc.
-  data: jsonb('data').notNull(),
-  timestamp: timestamp('timestamp').notNull(),
-  createdAt: timestamp('created_at').defaultNow(),
+export const vscodeActivities = pgTable("vscode_activities", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .references(() => users.id)
+    .notNull(),
+  type: text("type").notNull(), // 'heartbeat', 'file_change', etc.
+  data: jsonb("data").notNull(),
+  timestamp: timestamp("timestamp").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 ```
 
@@ -185,12 +187,12 @@ The current client uses REST-style endpoints. Update to use tRPC:
 
 ```typescript
 // src/api/client.ts
-import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
+import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 
 const tRPCClient = createTRPCProxyClient<AppRouter>({
   links: [
     httpBatchLink({
-      url: `${config.get('devpulse.apiUrl')}/trpc`,
+      url: `${config.get("devpulse.apiUrl")}/trpc`,
       headers: () => ({
         Authorization: `Bearer ${this.apiKey}`,
       }),
@@ -214,14 +216,16 @@ getApiUrl(): string {
 ## Testing the Extension
 
 1. Build the backend:
+
    ```bash
    cd server && pnpm dev
    ```
 
 2. Update VS Code extension API URL in settings:
+
    ```json
    {
-     'devpulse.apiUrl': 'http://localhost:3000'
+     "devpulse.apiUrl": "http://localhost:3000"
    }
    ```
 

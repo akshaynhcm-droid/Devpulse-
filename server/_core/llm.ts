@@ -19,7 +19,12 @@ export type FileContent = {
   type: "file_url";
   file_url: {
     url: string;
-    mime_type?: "audio/mpeg" | "audio/wav" | "application/pdf" | "audio/mp4" | "video/mp4" ;
+    mime_type?:
+      | "audio/mpeg"
+      | "audio/wav"
+      | "application/pdf"
+      | "audio/mp4"
+      | "video/mp4";
   };
 };
 
@@ -256,8 +261,8 @@ const normalizeResponseFormat = ({
 
 // Pricing per 1M tokens (USD) — update when MiniMax changes pricing
 const MINIMAX_PRICING = {
-  prompt: 0.40,      // $0.40 / 1M prompt tokens
-  completion: 2.00,  // $2.00 / 1M completion tokens
+  prompt: 0.4, // $0.40 / 1M prompt tokens
+  completion: 2.0, // $2.00 / 1M completion tokens
 };
 
 const resolveApiUrl = (): { url: string; key: string; model: string } => {
@@ -299,7 +304,9 @@ function calculateCost(promptTokens: number, completionTokens: number): number {
   );
 }
 
-export async function invokeLLM(params: InvokeParams & { userId?: number }): Promise<InvokeResult> {
+export async function invokeLLM(
+  params: InvokeParams & { userId?: number }
+): Promise<InvokeResult> {
   const {
     messages,
     tools,
@@ -344,7 +351,10 @@ export async function invokeLLM(params: InvokeParams & { userId?: number }): Pro
     payload.tools = tools;
   }
 
-  const normalizedToolChoice = normalizeToolChoice(toolChoice || tool_choice, tools);
+  const normalizedToolChoice = normalizeToolChoice(
+    toolChoice || tool_choice,
+    tools
+  );
   if (normalizedToolChoice) {
     payload.tool_choice = normalizedToolChoice;
   }
@@ -392,7 +402,7 @@ export async function invokeLLM(params: InvokeParams & { userId?: number }): Pro
     const costUSD = calculateCost(prompt_tokens, completion_tokens);
 
     // Fire-and-forget: don't block the response on DB write
-    import("../db").then(async (db) => {
+    import("../db").then(async db => {
       try {
         await db.recordTokenUsage(
           userId,
@@ -410,4 +420,3 @@ export async function invokeLLM(params: InvokeParams & { userId?: number }): Pro
 
   return result;
 }
-

@@ -39,8 +39,8 @@ function Dashboard() {
 
   React.useEffect(() => {
     fetch("/api/dashboard/metrics")
-      .then((res) => res.json())
-      .then((data) => setMetrics(data));
+      .then(res => res.json())
+      .then(data => setMetrics(data));
 
     const ws = new WebSocket("ws://localhost:8000/ws");
     ws.onopen = () => setWsConnected(true);
@@ -53,7 +53,9 @@ function Dashboard() {
       <div data-testid="metrics">
         {metrics ? (
           <>
-            <p data-testid="collections">Collections: {metrics.totalCollections}</p>
+            <p data-testid="collections">
+              Collections: {metrics.totalCollections}
+            </p>
             <p data-testid="findings">Findings: {metrics.totalFindings}</p>
             <p data-testid="risk">Risk Score: {metrics.highestRiskScore}</p>
             <p data-testid="team">Team: {metrics.teamMembers}</p>
@@ -76,7 +78,9 @@ describe("Dashboard", () => {
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(screen.getByTestId("collections")).toHaveTextContent("Collections: 5");
+      expect(screen.getByTestId("collections")).toHaveTextContent(
+        "Collections: 5"
+      );
     });
 
     expect(screen.getByTestId("findings")).toHaveTextContent("Findings: 12");
@@ -88,7 +92,9 @@ describe("Dashboard", () => {
     render(<Dashboard />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("websocket-status")).toHaveTextContent("WebSocket: Connected");
+      expect(screen.getByTestId("websocket-status")).toHaveTextContent(
+        "WebSocket: Connected"
+      );
     });
   });
 });

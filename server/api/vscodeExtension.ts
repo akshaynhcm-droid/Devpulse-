@@ -2,9 +2,9 @@
  * VS Code Extension API Router
  * Provides endpoints for the DevPulse VS Code extension
  */
-import { z } from 'zod';
-import { router, protectedProcedure, publicProcedure } from '../_core/trpc';
-import * as db from '../db';
+import { z } from "zod";
+import { router, protectedProcedure, publicProcedure } from "../_core/trpc";
+import * as db from "../db";
 
 export const vscodeExtensionRouter = router({
   /**
@@ -15,7 +15,7 @@ export const vscodeExtensionRouter = router({
     .mutation(async ({ input }) => {
       // Check if API key exists and is valid
       const user = await db.getUserByApiKey(input.apiKey);
-      
+
       if (!user) {
         return { valid: false, user: null };
       }
@@ -37,14 +37,24 @@ export const vscodeExtensionRouter = router({
   recordActivity: protectedProcedure
     .input(
       z.object({
-        type: z.enum(['heartbeat', 'file_change', 'session_start', 'session_end']),
-        data: z.record(z.any()),
+        type: z.enum([
+          "heartbeat",
+          "file_change",
+          "session_start",
+          "session_end",
+        ]),
+        data: z.record(z.string(), z.any()),
         timestamp: z.string().datetime(),
       })
     )
     .mutation(async ({ input, ctx }) => {
       // Store activity in database
-      await db.recordVSCodeActivity(ctx.user.id, input.type, input.data, new Date(input.timestamp));
+      await db.recordVSCodeActivity(
+        ctx.user.id,
+        input.type,
+        input.data,
+        new Date(input.timestamp)
+      );
       return { success: true };
     }),
 
@@ -58,9 +68,15 @@ export const vscodeExtensionRouter = router({
       db.getTokenUsageByUserId(ctx.user.id, 7),
     ]);
 
-    const totalFindings = recentScans.reduce((sum, scan) => sum + (scan.totalFindings || 0), 0);
+    const totalFindings = recentScans.reduce(
+      (sum, scan) => sum + (scan.totalFindings || 0),
+      0
+    );
     const openFindings = await db.getOpenFindingsCount(ctx.user.id);
-    const weeklyCost = tokenUsage.reduce((sum, u) => sum + parseFloat(u.costUSD as any || '0'), 0);
+    const weeklyCost = tokenUsage.reduce(
+      (sum, u) => sum + parseFloat((u.costUSD as any) || "0"),
+      0
+    );
 
     return {
       collections: collections.length,
@@ -68,7 +84,7 @@ export const vscodeExtensionRouter = router({
       totalFindings,
       openFindings,
       weeklyCost,
-      lastScanAt: recentScans[0]?.completedAt || null,
+      lastScanAt: recentScans[0]?.createdAt ?? null,
     };
   }),
 
@@ -80,7 +96,7 @@ export const vscodeExtensionRouter = router({
     .query(async ({ input, ctx }) => {
       const collection = await db.getCollectionById(input.collectionId);
       if (!collection || collection.userId !== ctx.user.id) {
-        throw new Error('Collection not found or access denied');
+        throw new Error("Collection not found or access denied");
       }
 
       const scans = await db.getScansByCollectionId(input.collectionId);
@@ -96,7 +112,9 @@ export const vscodeExtensionRouter = router({
       }
 
       const findings = await db.getFindingsByScanId(lastScan.id);
-      const criticalFindings = findings.filter(f => f.severity === 'critical' || f.severity === 'high');
+      const criticalFindings = findings.filter(
+        f => f.severity === "Critical" || f.severity === "High"
+      );
 
       return {
         hasScans: true,
@@ -118,25 +136,39 @@ export const vscodeExtensionRouter = router({
     .mutation(async ({ input, ctx }) => {
       const collection = await db.getCollectionById(input.collectionId);
       if (!collection || collection.userId !== ctx.user.id) {
-        throw new Error('Collection not found or access denied');
+        throw new Error("Collection not found or access denied");
       }
 
       // Check user plan limits
       const user = await db.getUserById(ctx.user.id);
-      if (user.plan === 'free' && user.scansRemaining <= 0) {
-        throw new Error('Scan limit reached. Upgrade to Pro for unlimited scans.');
+      if (!user) {
+        throw new Error("User not found");
+      }
+      if (user.plan === "free" && (user.scansRemaining ?? 0) <= 0) {
+        throw new Error(
+          "Scan limit reached. Upgrade to Pro for unlimited scans."
+        );
       }
 
-      // Create new scan
-      const scan = await db.createScan(input.collectionId, ctx.user.id);
-      
+      // Queue a pending scan — the scanning worker will pick it up asynchronously.
+      const scan = await db.createScan(
+        ctx.user.id,
+        input.collectionId,
+        "quick",
+        "pending",
+        0,
+        "LOW",
+        0
+      );
+
       // Decrement free user scans
-      if (user.plan === 'free') {
-        await db.updateUser(ctx.user.id, { scansRemaining: (user.scansRemaining || 0) - 1 });
+      if (user.plan === "free") {
+        await db.updateUser(ctx.user.id, {
+          scansRemaining: Math.max(0, (user.scansRemaining ?? 0) - 1),
+        });
       }
 
-      // Note: Actual scanning happens asynchronously via background job
-      return { scanId: scan.id, status: 'queued' };
+      return { scanId: scan.id, status: "queued" };
     }),
 
   /**
@@ -145,13 +177,16 @@ export const vscodeExtensionRouter = router({
   getRecentFindings: protectedProcedure
     .input(z.object({ limit: z.number().int().min(1).max(20).default(5) }))
     .query(async ({ input, ctx }) => {
-      const findings = await db.getRecentFindingsForUser(ctx.user.id, input.limit);
+      const findings = await db.getRecentFindingsForUser(
+        ctx.user.id,
+        input.limit
+      );
       return findings.map(f => ({
         id: f.id,
         title: f.title,
         severity: f.severity,
         status: f.status,
-        endpoint: f.endpoint,
+        category: f.category,
         collectionName: f.collectionName,
       }));
     }),
@@ -163,13 +198,13 @@ export const vscodeExtensionRouter = router({
     .input(
       z.object({
         findingId: z.string(),
-        status: z.enum(['open', 'in_progress', 'resolved', 'dismissed']),
+        status: z.enum(["open", "in-progress", "resolved"]),
       })
     )
     .mutation(async ({ input, ctx }) => {
       const finding = await db.getFindingById(input.findingId);
       if (!finding || finding.userId !== ctx.user.id) {
-        throw new Error('Finding not found or access denied');
+        throw new Error("Finding not found or access denied");
       }
 
       await db.updateFindingStatus(input.findingId, input.status);
@@ -188,22 +223,22 @@ export const vscodeExtensionRouter = router({
   /**
    * Get extension settings for user
    */
-  getExtensionSettings: protectedProcedure.query(async ({ ctx }) => {
-    const user = await db.getUserById(ctx.user.id);
+  getExtensionSettings: protectedProcedure.query(async () => {
     return {
       trackingEnabled: true, // Could be stored in user preferences
       heartbeatInterval: 120,
       trackFiles: true,
       trackGit: true,
-      excludePatterns: ['node_modules/**', '.git/**', 'dist/**', 'build/**'],
+      excludePatterns: ["node_modules/**", ".git/**", "dist/**", "build/**"],
     };
   }),
 });
 
 // Helper function to generate secure API key
 function generateSecureApiKey(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let result = "";
   for (let i = 0; i < 32; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }

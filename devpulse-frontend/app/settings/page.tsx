@@ -25,7 +25,10 @@ function ProfileTab() {
 
   const [name, setName] = useState(profile?.name || "");
   const [email, setEmail] = useState(profile?.email || "");
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,54 +38,73 @@ function ProfileTab() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-gray-900">Profile Information</h3>
-        <p className="text-sm text-gray-500 mt-1">Update your display name and email address</p>
+        <h3 className="text-lg font-medium text-gray-900">
+          Profile Information
+        </h3>
+        <p className="text-sm text-gray-500 mt-1">
+          Update your display name and email address
+        </p>
       </div>
 
       {message && (
-        <div className={`p-4 rounded-md ${message.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+        <div
+          className={`p-4 rounded-md ${message.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}
+        >
           {message.text}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Display Name
+          </label>
           <input
             type="text"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={e => setName(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Your name"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Email Address
+          </label>
           <input
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={e => setEmail(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="your@email.com"
           />
-          <p className="text-xs text-gray-500 mt-1">Changing email will require verification</p>
+          <p className="text-xs text-gray-500 mt-1">
+            Changing email will require verification
+          </p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Plan</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Plan
+          </label>
           <div className="flex items-center space-x-2">
             <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium capitalize">
               {profile?.plan}
             </span>
-            <Link href="/pricing" className="text-sm text-blue-600 hover:underline">
+            <Link
+              href="/pricing"
+              className="text-sm text-blue-600 hover:underline"
+            >
               Upgrade →
             </Link>
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Role
+          </label>
           <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-sm font-medium capitalize">
             {profile?.role}
           </span>
@@ -104,7 +126,8 @@ function ProfileTab() {
 // SECURITY TAB
 // ============================================================================
 function SecurityTab() {
-  const { data: sessions, refetch: refetchSessions } = trpc.settings.getSessions.useQuery();
+  const { data: sessions, refetch: refetchSessions } =
+    trpc.settings.getSessions.useQuery();
   const revokeSession = trpc.settings.revokeSession.useMutation({
     onSuccess: () => refetchSessions(),
   });
@@ -126,7 +149,10 @@ function SecurityTab() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   const handlePasswordChange = (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,7 +161,10 @@ function SecurityTab() {
       return;
     }
     if (newPassword.length < 8) {
-      setMessage({ type: "error", text: "Password must be at least 8 characters" });
+      setMessage({
+        type: "error",
+        text: "Password must be at least 8 characters",
+      });
       return;
     }
     changePassword.mutate({ currentPassword, newPassword });
@@ -149,39 +178,47 @@ function SecurityTab() {
         <p className="text-sm text-gray-500 mt-1">Update your password</p>
 
         {message && (
-          <div className={`mt-4 p-4 rounded-md ${message.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+          <div
+            className={`mt-4 p-4 rounded-md ${message.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}
+          >
             {message.text}
           </div>
         )}
 
         <form onSubmit={handlePasswordChange} className="mt-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Current Password
+            </label>
             <input
               type="password"
               value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
+              onChange={e => setCurrentPassword(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              New Password
+            </label>
             <input
               type="password"
               value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
+              onChange={e => setNewPassword(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
               minLength={8}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Confirm New Password
+            </label>
             <input
               type="password"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={e => setConfirmPassword(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
@@ -198,10 +235,17 @@ function SecurityTab() {
 
       {/* 2FA Section (Stub) */}
       <div className="border-t pt-6">
-        <h3 className="text-lg font-medium text-gray-900">Two-Factor Authentication</h3>
-        <p className="text-sm text-gray-500 mt-1">Add an extra layer of security to your account</p>
+        <h3 className="text-lg font-medium text-gray-900">
+          Two-Factor Authentication
+        </h3>
+        <p className="text-sm text-gray-500 mt-1">
+          Add an extra layer of security to your account
+        </p>
         <div className="mt-4 p-4 bg-gray-50 rounded-md">
-          <p className="text-sm text-gray-600">2FA setup coming soon. This will support authenticator apps like Google Authenticator and Authy.</p>
+          <p className="text-sm text-gray-600">
+            2FA setup coming soon. This will support authenticator apps like
+            Google Authenticator and Authy.
+          </p>
         </div>
       </div>
 
@@ -209,8 +253,12 @@ function SecurityTab() {
       <div className="border-t pt-6">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-medium text-gray-900">Active Sessions</h3>
-            <p className="text-sm text-gray-500 mt-1">Manage your active sessions across devices</p>
+            <h3 className="text-lg font-medium text-gray-900">
+              Active Sessions
+            </h3>
+            <p className="text-sm text-gray-500 mt-1">
+              Manage your active sessions across devices
+            </p>
           </div>
           <button
             onClick={() => revokeAllSessions.mutate()}
@@ -225,25 +273,40 @@ function SecurityTab() {
           {sessions?.sessions.length === 0 ? (
             <p className="text-sm text-gray-500">No active sessions</p>
           ) : (
-            sessions?.sessions.map((session: { id: string; userAgent?: string; ipAddress?: string; lastActiveAt: string }) => (
-              <div key={session.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    {session.userAgent?.includes("Mobile") ? "Mobile Device" : "Desktop"}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {session.ipAddress || "Unknown IP"} • Last active {new Date(session.lastActiveAt).toLocaleString()}
-                  </p>
-                </div>
-                <button
-                  onClick={() => revokeSession.mutate({ sessionId: session.id })}
-                  disabled={revokeSession.isPending}
-                  className="text-red-600 hover:text-red-700 text-sm font-medium"
+            sessions?.sessions.map(
+              (session: {
+                id: string;
+                userAgent?: string;
+                ipAddress?: string;
+                lastActiveAt: string;
+              }) => (
+                <div
+                  key={session.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-md"
                 >
-                  Revoke
-                </button>
-              </div>
-            ))
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {session.userAgent?.includes("Mobile")
+                        ? "Mobile Device"
+                        : "Desktop"}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {session.ipAddress || "Unknown IP"} • Last active{" "}
+                      {new Date(session.lastActiveAt).toLocaleString()}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() =>
+                      revokeSession.mutate({ sessionId: session.id })
+                    }
+                    disabled={revokeSession.isPending}
+                    className="text-red-600 hover:text-red-700 text-sm font-medium"
+                  >
+                    Revoke
+                  </button>
+                </div>
+              )
+            )
           )}
         </div>
       </div>
@@ -274,24 +337,46 @@ function DangerZoneTab() {
     <div className="space-y-8">
       {/* Security Audit Log */}
       <div>
-        <h3 className="text-lg font-medium text-gray-900">Security Audit Log</h3>
-        <p className="text-sm text-gray-500 mt-1">Recent security-related actions on your account</p>
+        <h3 className="text-lg font-medium text-gray-900">
+          Security Audit Log
+        </h3>
+        <p className="text-sm text-gray-500 mt-1">
+          Recent security-related actions on your account
+        </p>
 
         <div className="mt-4 space-y-2">
           {auditLog?.logs.length === 0 ? (
             <p className="text-sm text-gray-500">No recent activity</p>
           ) : (
-            auditLog?.logs.map((log: { id: string; action: string; ipAddress?: string; createdAt: string }) => (
-              <div key={log.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-md text-sm">
-                <div>
-                  <span className="font-medium text-gray-900">
-                    {log.action.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase())}
+            auditLog?.logs.map(
+              (log: {
+                id: string;
+                action: string;
+                ipAddress?: string;
+                createdAt: string;
+              }) => (
+                <div
+                  key={log.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-md text-sm"
+                >
+                  <div>
+                    <span className="font-medium text-gray-900">
+                      {log.action
+                        .replace(/_/g, " ")
+                        .replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                    </span>
+                    {log.ipAddress && (
+                      <span className="text-gray-500 ml-2">
+                        from {log.ipAddress}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-gray-500">
+                    {new Date(log.createdAt).toLocaleString()}
                   </span>
-                  {log.ipAddress && <span className="text-gray-500 ml-2">from {log.ipAddress}</span>}
                 </div>
-                <span className="text-gray-500">{new Date(log.createdAt).toLocaleString()}</span>
-              </div>
-            ))
+              )
+            )
           )}
         </div>
       </div>
@@ -300,13 +385,12 @@ function DangerZoneTab() {
       <div className="border-t pt-6">
         <h3 className="text-lg font-medium text-red-600">Delete Account</h3>
         <p className="text-sm text-gray-500 mt-1">
-          Permanently delete your account and all associated data. This action cannot be undone.
+          Permanently delete your account and all associated data. This action
+          cannot be undone.
         </p>
 
         <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-sm text-red-700">
-            This will delete:
-          </p>
+          <p className="text-sm text-red-700">This will delete:</p>
           <ul className="text-sm text-red-700 mt-2 ml-4 list-disc">
             <li>Your profile and authentication data</li>
             <li>All collections and imported APIs</li>
@@ -329,9 +413,12 @@ function DangerZoneTab() {
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Delete Your Account?</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-4">
+              Delete Your Account?
+            </h3>
             <p className="text-sm text-gray-600 mb-4">
-              This action cannot be undone. All your data will be permanently removed.
+              This action cannot be undone. All your data will be permanently
+              removed.
             </p>
 
             <div className="mb-4">
@@ -340,7 +427,7 @@ function DangerZoneTab() {
               </label>
               <textarea
                 value={reason}
-                onChange={(e) => setReason(e.target.value)}
+                onChange={e => setReason(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 rows={3}
                 placeholder="Help us improve..."
@@ -354,7 +441,7 @@ function DangerZoneTab() {
               <input
                 type="text"
                 value={confirmation}
-                onChange={(e) => setConfirmation(e.target.value)}
+                onChange={e => setConfirmation(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
                 placeholder="DELETE MY ACCOUNT"
               />
@@ -368,8 +455,16 @@ function DangerZoneTab() {
                 Cancel
               </button>
               <button
-                onClick={() => deleteAccount.mutate({ confirmation: confirmation as "DELETE MY ACCOUNT", reason })}
-                disabled={confirmation !== "DELETE MY ACCOUNT" || deleteAccount.isPending}
+                onClick={() =>
+                  deleteAccount.mutate({
+                    confirmation: confirmation as "DELETE MY ACCOUNT",
+                    reason,
+                  })
+                }
+                disabled={
+                  confirmation !== "DELETE MY ACCOUNT" ||
+                  deleteAccount.isPending
+                }
                 className="flex-1 bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 disabled:opacity-50"
               >
                 {deleteAccount.isPending ? "Deleting..." : "Delete Forever"}
@@ -404,7 +499,9 @@ function SettingsContent() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-              <p className="text-sm text-gray-500">Manage your account preferences and security</p>
+              <p className="text-sm text-gray-500">
+                Manage your account preferences and security
+              </p>
             </div>
             <Link
               href="/dashboard"
@@ -422,7 +519,7 @@ function SettingsContent() {
           {/* Sidebar */}
           <div className="w-full md:w-64 flex-shrink-0">
             <nav className="space-y-1">
-              {tabs.map((tab) => (
+              {tabs.map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
@@ -456,11 +553,13 @@ function SettingsContent() {
 
 export default function SettingsPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      }
+    >
       <SettingsContent />
     </Suspense>
   );

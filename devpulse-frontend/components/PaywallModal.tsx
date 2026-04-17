@@ -73,7 +73,9 @@ export default function PaywallModal({
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || "Failed to create subscription");
+        throw new Error(
+          errorData.error?.message || "Failed to create subscription"
+        );
       }
 
       const result = await res.json();
@@ -125,8 +127,8 @@ export default function PaywallModal({
 
   if (!isOpen) return null;
 
-  const requiredPlanData = plans.find((p) => p.id === requiredPlan);
-  const currentPlanData = plans.find((p) => p.id === currentPlan);
+  const requiredPlanData = plans.find(p => p.id === requiredPlan);
+  const currentPlanData = plans.find(p => p.id === currentPlan);
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -154,7 +156,8 @@ export default function PaywallModal({
           <div className="flex items-center gap-2 p-3 bg-amber-900/20 border border-amber-500/30 rounded-lg mb-6">
             <AlertCircle className="w-4 h-4 text-amber-400" />
             <span className="text-sm text-amber-300">
-              Required: {requiredPlan === "enterprise" ? "Enterprise" : "Pro"} plan or higher
+              Required: {requiredPlan === "enterprise" ? "Enterprise" : "Pro"}{" "}
+              plan or higher
             </span>
           </div>
         )}
@@ -174,8 +177,8 @@ export default function PaywallModal({
             </div>
           ) : (
             plans
-              .filter((p) => p.id !== "free")
-              .map((plan) => {
+              .filter(p => p.id !== "free")
+              .map(plan => {
                 const isRecommended = plan.id === requiredPlan;
                 const isCurrent = currentPlan === plan.id;
                 const isHigher =
@@ -189,8 +192,8 @@ export default function PaywallModal({
                       isCurrent
                         ? "border-green-500/50 bg-green-900/10"
                         : isRecommended
-                        ? "border-indigo-500 bg-indigo-900/20 ring-1 ring-indigo-500"
-                        : "border-slate-800 bg-slate-900/50"
+                          ? "border-indigo-500 bg-indigo-900/20 ring-1 ring-indigo-500"
+                          : "border-slate-800 bg-slate-900/50"
                     }`}
                   >
                     {isRecommended && !isCurrent && (
@@ -239,7 +242,9 @@ export default function PaywallModal({
                           )}
                         </button>
                       ) : (
-                        <span className="text-sm text-slate-500">Lower tier</span>
+                        <span className="text-sm text-slate-500">
+                          Lower tier
+                        </span>
                       )}
                     </div>
 

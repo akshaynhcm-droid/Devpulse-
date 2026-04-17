@@ -33,17 +33,22 @@ interface BudgetWarningOptions {
   percentUsed: number;
 }
 
-export async function sendSlackKillSwitchAlert(opts: KillSwitchAlertOptions): Promise<void> {
+export async function sendSlackKillSwitchAlert(
+  opts: KillSwitchAlertOptions
+): Promise<void> {
   const webhookUrl = process.env.SLACK_WEBHOOK_URL;
 
   if (!webhookUrl) {
-    console.log(`[Slack] Webhook not configured. Kill switch triggered by user ${opts.userId} (${opts.userName}): ${opts.reason}`);
+    console.log(
+      `[Slack] Webhook not configured. Kill switch triggered by user ${opts.userId} (${opts.userName}): ${opts.reason}`
+    );
     return;
   }
 
-  const percentUsed = opts.budgetLimit > 0
-    ? Math.round((opts.currentSpend / opts.budgetLimit) * 100)
-    : 0;
+  const percentUsed =
+    opts.budgetLimit > 0
+      ? Math.round((opts.currentSpend / opts.budgetLimit) * 100)
+      : 0;
 
   const payload = {
     text: "🚨 *DevPulse Kill Switch Triggered*",
@@ -106,29 +111,47 @@ export async function sendSlackKillSwitchAlert(opts: KillSwitchAlertOptions): Pr
   });
 
   if (!response.ok) {
-    throw new Error(`Slack webhook returned ${response.status}: ${await response.text()}`);
+    throw new Error(
+      `Slack webhook returned ${response.status}: ${await response.text()}`
+    );
   }
 
   console.log(`[Slack] Kill switch alert sent for user ${opts.userId}`);
 }
 
-export async function sendSlackScanAlert(opts: ScanAlertOptions): Promise<void> {
+export async function sendSlackScanAlert(
+  opts: ScanAlertOptions
+): Promise<void> {
   const webhookUrl = process.env.SLACK_WEBHOOK_URL;
 
   if (!webhookUrl) {
-    console.log(`[Slack] Webhook not configured. Scan completed for collection ${opts.collectionName}`);
+    console.log(
+      `[Slack] Webhook not configured. Scan completed for collection ${opts.collectionName}`
+    );
     return;
   }
 
-  const triggerEmoji = opts.triggeredBy === "github_push" ? "🔄" : opts.triggeredBy === "github_pr" ? "🔀" : "🔍";
-  const triggerText = opts.triggeredBy === "github_push" 
-    ? `GitHub push to ${opts.branch || "main"}` 
-    : opts.triggeredBy === "github_pr" 
-      ? `GitHub PR #${opts.prNumber}` 
-      : "Manual scan";
+  const triggerEmoji =
+    opts.triggeredBy === "github_push"
+      ? "🔄"
+      : opts.triggeredBy === "github_pr"
+        ? "🔀"
+        : "🔍";
+  const triggerText =
+    opts.triggeredBy === "github_push"
+      ? `GitHub push to ${opts.branch || "main"}`
+      : opts.triggeredBy === "github_pr"
+        ? `GitHub PR #${opts.prNumber}`
+        : "Manual scan";
 
-  const severityEmoji = opts.criticalCount > 0 ? "🚨" : opts.highCount > 0 ? "⚠️" : "✅";
-  const color = opts.criticalCount > 0 ? "#FF0000" : opts.highCount > 0 ? "#FFA500" : "#36A64F";
+  const severityEmoji =
+    opts.criticalCount > 0 ? "🚨" : opts.highCount > 0 ? "⚠️" : "✅";
+  const color =
+    opts.criticalCount > 0
+      ? "#FF0000"
+      : opts.highCount > 0
+        ? "#FFA500"
+        : "#36A64F";
 
   const payload = {
     text: `${severityEmoji} *DevPulse Security Scan Complete*`,
@@ -191,17 +214,23 @@ export async function sendSlackScanAlert(opts: ScanAlertOptions): Promise<void> 
   });
 
   if (!response.ok) {
-    throw new Error(`Slack webhook returned ${response.status}: ${await response.text()}`);
+    throw new Error(
+      `Slack webhook returned ${response.status}: ${await response.text()}`
+    );
   }
 
   console.log(`[Slack] Scan alert sent for collection ${opts.collectionName}`);
 }
 
-export async function sendSlackBudgetWarning(opts: BudgetWarningOptions): Promise<void> {
+export async function sendSlackBudgetWarning(
+  opts: BudgetWarningOptions
+): Promise<void> {
   const webhookUrl = process.env.SLACK_WEBHOOK_URL;
 
   if (!webhookUrl) {
-    console.log(`[Slack] Webhook not configured. Budget warning for user ${opts.userId} (${opts.userName}): ${opts.percentUsed.toFixed(1)}% used`);
+    console.log(
+      `[Slack] Webhook not configured. Budget warning for user ${opts.userId} (${opts.userName}): ${opts.percentUsed.toFixed(1)}% used`
+    );
     return;
   }
 
@@ -266,7 +295,9 @@ export async function sendSlackBudgetWarning(opts: BudgetWarningOptions): Promis
   });
 
   if (!response.ok) {
-    throw new Error(`Slack webhook returned ${response.status}: ${await response.text()}`);
+    throw new Error(
+      `Slack webhook returned ${response.status}: ${await response.text()}`
+    );
   }
 
   console.log(`[Slack] Budget warning sent for user ${opts.userId}`);

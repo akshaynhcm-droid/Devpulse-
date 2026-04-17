@@ -100,7 +100,14 @@ interface RazorpaySubscriptionResponse {
   entity: string;
   plan_id: string;
   customer_id: string;
-  status: "created" | "authenticated" | "active" | "pending" | "halted" | "cancelled" | "paused";
+  status:
+    | "created"
+    | "authenticated"
+    | "active"
+    | "pending"
+    | "halted"
+    | "cancelled"
+    | "paused";
   current_start?: number;
   current_end?: number;
   ended_at?: number;
@@ -167,7 +174,9 @@ interface RazorpayWebhookPayload {
 
 const authHeader = () => {
   if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
-    throw new Error("Razorpay credentials not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.");
+    throw new Error(
+      "Razorpay credentials not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET."
+    );
   }
   return `Basic ${Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64")}`;
 };
@@ -180,9 +189,12 @@ async function getOrCreatePlan(plan: PlanType): Promise<string> {
   const planName = `devpulse_${plan}_monthly`;
 
   // Try to find existing plan
-  const listResponse = await fetch(`https://api.razorpay.com/v1/plans?count=100`, {
-    headers: { Authorization: authHeader() },
-  });
+  const listResponse = await fetch(
+    `https://api.razorpay.com/v1/plans?count=100`,
+    {
+      headers: { Authorization: authHeader() },
+    }
+  );
 
   if (!listResponse.ok) {
     throw new Error(`Failed to list plans: ${await listResponse.text()}`);
@@ -225,11 +237,18 @@ async function getOrCreatePlan(plan: PlanType): Promise<string> {
 /**
  * Create or get Razorpay customer
  */
-async function getOrCreateCustomer(userId: number, email: string, name?: string): Promise<string> {
+async function getOrCreateCustomer(
+  userId: number,
+  email: string,
+  name?: string
+): Promise<string> {
   // Try to find existing customer by email
-  const listResponse = await fetch(`https://api.razorpay.com/v1/customers?count=100`, {
-    headers: { Authorization: authHeader() },
-  });
+  const listResponse = await fetch(
+    `https://api.razorpay.com/v1/customers?count=100`,
+    {
+      headers: { Authorization: authHeader() },
+    }
+  );
 
   if (!listResponse.ok) {
     throw new Error(`Failed to list customers: ${await listResponse.text()}`);
@@ -259,7 +278,9 @@ async function getOrCreateCustomer(userId: number, email: string, name?: string)
   });
 
   if (!createResponse.ok) {
-    throw new Error(`Failed to create customer: ${await createResponse.text()}`);
+    throw new Error(
+      `Failed to create customer: ${await createResponse.text()}`
+    );
   }
 
   const newCustomer: RazorpayCustomerResponse = await createResponse.json();
@@ -339,7 +360,9 @@ export function verifyPaymentSignature(params: {
   signature: string;
 }): boolean {
   if (!RAZORPAY_KEY_SECRET) {
-    console.error("[Razorpay] Key secret not configured — cannot verify signature");
+    console.error(
+      "[Razorpay] Key secret not configured — cannot verify signature"
+    );
     return false;
   }
 
@@ -362,11 +385,14 @@ export async function getPaymentDetails(paymentId: string): Promise<any> {
     throw new Error("Razorpay credentials not configured");
   }
 
-  const response = await fetch(`https://api.razorpay.com/v1/payments/${paymentId}`, {
-    headers: {
-      Authorization: `Basic ${Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64")}`,
-    },
-  });
+  const response = await fetch(
+    `https://api.razorpay.com/v1/payments/${paymentId}`,
+    {
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64")}`,
+      },
+    }
+  );
 
   if (!response.ok) {
     throw new Error(`Failed to fetch payment details: ${response.statusText}`);
@@ -387,17 +413,20 @@ export async function processRefund(
     throw new Error("Razorpay credentials not configured");
   }
 
-  const response = await fetch(`https://api.razorpay.com/v1/payments/${paymentId}/refund`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Basic ${Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64")}`,
-    },
-    body: JSON.stringify({
-      amount,
-      notes: { reason },
-    }),
-  });
+  const response = await fetch(
+    `https://api.razorpay.com/v1/payments/${paymentId}/refund`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Basic ${Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64")}`,
+      },
+      body: JSON.stringify({
+        amount,
+        notes: { reason },
+      }),
+    }
+  );
 
   if (!response.ok) {
     throw new Error(`Refund failed: ${response.statusText}`);
@@ -435,10 +464,15 @@ export async function cancelSubscription(
 /**
  * Fetch subscription details from Razorpay.
  */
-export async function getSubscriptionDetails(subscriptionId: string): Promise<any> {
-  const response = await fetch(`https://api.razorpay.com/v1/subscriptions/${subscriptionId}`, {
-    headers: { Authorization: authHeader() },
-  });
+export async function getSubscriptionDetails(
+  subscriptionId: string
+): Promise<any> {
+  const response = await fetch(
+    `https://api.razorpay.com/v1/subscriptions/${subscriptionId}`,
+    {
+      headers: { Authorization: authHeader() },
+    }
+  );
 
   if (!response.ok) {
     throw new Error(`Failed to fetch subscription: ${response.statusText}`);
@@ -450,7 +484,9 @@ export async function getSubscriptionDetails(subscriptionId: string): Promise<an
 /**
  * Fetch subscription invoices from Razorpay.
  */
-export async function getSubscriptionInvoices(subscriptionId: string): Promise<any[]> {
+export async function getSubscriptionInvoices(
+  subscriptionId: string
+): Promise<any[]> {
   const response = await fetch(
     `https://api.razorpay.com/v1/invoices?subscription_id=${subscriptionId}`,
     { headers: { Authorization: authHeader() } }
@@ -537,13 +573,14 @@ export function getPlanLimits(plan: PlanType) {
 /**
  * Check if a feature is available for a given plan.
  */
-export function isFeatureAvailable(plan: PlanType, feature: keyof typeof PLAN_CONFIG["free"]["limits"]): boolean {
+export function isFeatureAvailable(
+  plan: PlanType,
+  feature: keyof (typeof PLAN_CONFIG)["free"]["limits"]
+): boolean {
   const limits = PLAN_CONFIG[plan].limits;
-  return feature in limits ? Boolean(limits[feature as keyof typeof limits]) : true;
+  return feature in limits
+    ? Boolean(limits[feature as keyof typeof limits])
+    : true;
 }
 
-export {
-  PLAN_CONFIG,
-  type PlanType,
-  type RazorpayWebhookPayload,
-};
+export { PLAN_CONFIG, type PlanType, type RazorpayWebhookPayload };

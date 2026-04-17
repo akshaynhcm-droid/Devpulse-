@@ -65,7 +65,7 @@ export default function AuditLogPage() {
       <div className="mb-4 flex gap-4">
         <select
           value={filter}
-          onChange={(e) => setFilter(e.target.value)}
+          onChange={e => setFilter(e.target.value)}
           className="border rounded px-3 py-2"
         >
           <option value="">All Actions</option>
@@ -92,7 +92,7 @@ export default function AuditLogPage() {
               </tr>
             </thead>
             <tbody>
-              {logs.map((log) => (
+              {logs.map(log => (
                 <tr key={log.id} data-testid={`audit-entry-${log.action}`}>
                   <td className="border p-2">{formatDate(log.createdAt)}</td>
                   <td className="border p-2">
@@ -127,7 +127,7 @@ export default function AuditLogPage() {
 
           <div className="mt-4 flex justify-between items-center">
             <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
               className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
             >
@@ -137,7 +137,7 @@ export default function AuditLogPage() {
               Page {page} of {totalPages}
             </span>
             <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
               className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
             >

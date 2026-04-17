@@ -54,7 +54,9 @@ export function verifyGitHubWebhook(
   secret: string
 ): boolean {
   if (!secret) {
-    console.warn("[GitHub] Webhook secret not configured — skipping verification");
+    console.warn(
+      "[GitHub] Webhook secret not configured — skipping verification"
+    );
     return true; // Allow if no secret configured (dev mode)
   }
 
@@ -80,13 +82,19 @@ export async function handleGitHubPush(payload: GitHubWebhookPayload): Promise<{
   const commitCount = payload.commits?.length || 0;
   const commitSha = payload.after || "";
 
-  console.log(`[GitHub] Push to ${payload.repository.full_name}:${branch} - ${commitCount} commits`);
+  console.log(
+    `[GitHub] Push to ${payload.repository.full_name}:${branch} - ${commitCount} commits`
+  );
 
   // Find collections linked to this repository
-  const collections = await db.getCollectionsByRepoUrl(payload.repository.full_name);
-  
+  const collections = await db.getCollectionsByRepoUrl(
+    payload.repository.full_name
+  );
+
   if (collections.length === 0) {
-    console.log(`[GitHub] No collections found for repo ${payload.repository.full_name}`);
+    console.log(
+      `[GitHub] No collections found for repo ${payload.repository.full_name}`
+    );
     return {
       status: "processed",
       repository: payload.repository.full_name,
@@ -101,18 +109,23 @@ export async function handleGitHubPush(payload: GitHubWebhookPayload): Promise<{
   let scansTriggered = 0;
   for (const collection of collections) {
     try {
-      console.log(`[GitHub] Triggering scan for collection ${collection.id} (${collection.name})`);
-      
+      console.log(
+        `[GitHub] Triggering scan for collection ${collection.id} (${collection.name})`
+      );
+
       await runCollectionScan(collection.userId, collection.id, {
         scanType: "full",
         triggeredBy: "github_push",
         branch,
         commitSha,
       });
-      
+
       scansTriggered++;
     } catch (error) {
-      console.error(`[GitHub] Failed to trigger scan for collection ${collection.id}:`, error);
+      console.error(
+        `[GitHub] Failed to trigger scan for collection ${collection.id}:`,
+        error
+      );
     }
   }
 
@@ -126,7 +139,9 @@ export async function handleGitHubPush(payload: GitHubWebhookPayload): Promise<{
   };
 }
 
-export async function handleGitHubPullRequest(payload: GitHubWebhookPayload): Promise<{
+export async function handleGitHubPullRequest(
+  payload: GitHubWebhookPayload
+): Promise<{
   status: string;
   repository: string;
   prNumber: number;
@@ -155,10 +170,14 @@ export async function handleGitHubPullRequest(payload: GitHubWebhookPayload): Pr
   }
 
   // Find collections linked to this repository
-  const collections = await db.getCollectionsByRepoUrl(payload.repository.full_name);
-  
+  const collections = await db.getCollectionsByRepoUrl(
+    payload.repository.full_name
+  );
+
   if (collections.length === 0) {
-    console.log(`[GitHub] No collections found for repo ${payload.repository.full_name}`);
+    console.log(
+      `[GitHub] No collections found for repo ${payload.repository.full_name}`
+    );
     return {
       status: "processed",
       repository: payload.repository.full_name,
@@ -174,8 +193,10 @@ export async function handleGitHubPullRequest(payload: GitHubWebhookPayload): Pr
   let scansTriggered = 0;
   for (const collection of collections) {
     try {
-      console.log(`[GitHub] Triggering PR scan for collection ${collection.id} (${collection.name})`);
-      
+      console.log(
+        `[GitHub] Triggering PR scan for collection ${collection.id} (${collection.name})`
+      );
+
       await runCollectionScan(collection.userId, collection.id, {
         scanType: "quick", // Quick scan for PRs
         triggeredBy: "github_pr",
@@ -183,10 +204,13 @@ export async function handleGitHubPullRequest(payload: GitHubWebhookPayload): Pr
         branch: pr.head.ref,
         commitSha: pr.head.sha,
       });
-      
+
       scansTriggered++;
     } catch (error) {
-      console.error(`[GitHub] Failed to trigger PR scan for collection ${collection.id}:`, error);
+      console.error(
+        `[GitHub] Failed to trigger PR scan for collection ${collection.id}:`,
+        error
+      );
     }
   }
 

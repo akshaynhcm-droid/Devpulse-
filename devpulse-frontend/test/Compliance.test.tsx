@@ -55,10 +55,12 @@ function Compliance() {
       </button>
 
       <div data-testid="reports-list">
-        {reports.map((r) => (
+        {reports.map(r => (
           <div key={r.id} data-testid={`report-${r.id}`}>
             <span>{r.reportType}</span>
-            <span data-testid={`score-${r.id}`}>Score: {r.complianceScore}%</span>
+            <span data-testid={`score-${r.id}`}>
+              Score: {r.complianceScore}%
+            </span>
             <button
               onClick={() => exportPDF(r.id)}
               data-testid={`export-${r.id}`}
@@ -74,8 +76,18 @@ function Compliance() {
 
 describe("Compliance", () => {
   const mockReports = [
-    { id: "r1", reportType: "pci_dss", complianceScore: 85, createdAt: "2024-01-01" },
-    { id: "r2", reportType: "owasp", complianceScore: 92, createdAt: "2024-01-15" },
+    {
+      id: "r1",
+      reportType: "pci_dss",
+      complianceScore: 85,
+      createdAt: "2024-01-01",
+    },
+    {
+      id: "r2",
+      reportType: "owasp",
+      complianceScore: 92,
+      createdAt: "2024-01-15",
+    },
   ];
 
   beforeEach(() => {
@@ -110,7 +122,9 @@ describe("Compliance", () => {
       expect(screen.getByTestId("generate-btn")).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId("generate-btn")).toHaveTextContent("Generate Report");
+    expect(screen.getByTestId("generate-btn")).toHaveTextContent(
+      "Generate Report"
+    );
   });
 
   it("triggers report generation", async () => {

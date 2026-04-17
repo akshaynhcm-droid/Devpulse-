@@ -32,7 +32,11 @@ function Collections() {
   const handleCreate = async () => {
     await fetch("/api/collections", {
       method: "POST",
-      body: JSON.stringify({ name: "New Collection", format: "postman", data: {} }),
+      body: JSON.stringify({
+        name: "New Collection",
+        format: "postman",
+        data: {},
+      }),
     });
     fetchCollections();
   };
@@ -55,23 +59,29 @@ function Collections() {
   return (
     <div data-testid="collections-page">
       <h1>Collections</h1>
-      <button onClick={handleCreate} data-testid="create-btn">Create Collection</button>
-      <button onClick={() => setShowImport(true)} data-testid="import-btn">Import</button>
+      <button onClick={handleCreate} data-testid="create-btn">
+        Create Collection
+      </button>
+      <button onClick={() => setShowImport(true)} data-testid="import-btn">
+        Import
+      </button>
 
       {showImport && (
         <div data-testid="import-modal">
           <textarea
             data-testid="import-input"
             value={importData}
-            onChange={(e) => setImportData(e.target.value)}
+            onChange={e => setImportData(e.target.value)}
             placeholder="Paste collection JSON"
           />
-          <button onClick={handleImport} data-testid="confirm-import">Import</button>
+          <button onClick={handleImport} data-testid="confirm-import">
+            Import
+          </button>
         </div>
       )}
 
       <ul data-testid="collections-list">
-        {collections.map((c) => (
+        {collections.map(c => (
           <li key={c.id} data-testid={`collection-${c.id}`}>
             <span>{c.name}</span>
             <span>({c.format})</span>
@@ -91,8 +101,20 @@ function Collections() {
 
 describe("Collections", () => {
   const mockCollections: Collection[] = [
-    { id: "col1", name: "API v1", format: "postman", totalRequests: 10, createdAt: "2024-01-01" },
-    { id: "col2", name: "API v2", format: "openapi", totalRequests: 25, createdAt: "2024-01-02" },
+    {
+      id: "col1",
+      name: "API v1",
+      format: "postman",
+      totalRequests: 10,
+      createdAt: "2024-01-01",
+    },
+    {
+      id: "col2",
+      name: "API v2",
+      format: "openapi",
+      totalRequests: 25,
+      createdAt: "2024-01-02",
+    },
   ];
 
   beforeEach(() => {
@@ -126,7 +148,10 @@ describe("Collections", () => {
 
     await user.click(screen.getByTestId("create-btn"));
 
-    expect(global.fetch).toHaveBeenCalledWith("/api/collections", expect.any(Object));
+    expect(global.fetch).toHaveBeenCalledWith(
+      "/api/collections",
+      expect.any(Object)
+    );
   });
 
   it("opens import modal", async () => {
@@ -173,6 +198,9 @@ describe("Collections", () => {
 
     await user.click(screen.getByTestId("delete-col1"));
 
-    expect(global.fetch).toHaveBeenCalledWith("/api/collections/col1", expect.any(Object));
+    expect(global.fetch).toHaveBeenCalledWith(
+      "/api/collections/col1",
+      expect.any(Object)
+    );
   });
 });

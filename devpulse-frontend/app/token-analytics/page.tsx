@@ -28,8 +28,12 @@ export default function TokenAnalyticsPage() {
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-blue-400">Token Analytics</h1>
-            <p className="text-gray-400 mt-1">Track LLM token usage and costs by model</p>
+            <h1 className="text-3xl font-bold text-blue-400">
+              Token Analytics
+            </h1>
+            <p className="text-gray-400 mt-1">
+              Track LLM token usage and costs by model
+            </p>
           </div>
           <Link href="/dashboard" className="text-blue-400 hover:text-blue-300">
             &larr; Dashboard
@@ -41,22 +45,30 @@ export default function TokenAnalyticsPage() {
         ) : (
           <div>
             <div className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">Cost Breakdown by Model</h2>
+              <h2 className="text-xl font-semibold mb-4">
+                Cost Breakdown by Model
+              </h2>
               {analytics?.breakdown ? (
                 <div className="space-y-3">
                   {analytics.breakdown.map((item: any) => (
-                    <div key={item.model} className="bg-gray-800 p-4 rounded-lg border border-gray-700 flex justify-between">
+                    <div
+                      key={item.model}
+                      className="bg-gray-800 p-4 rounded-lg border border-gray-700 flex justify-between"
+                    >
                       <div>
                         <h3 className="font-semibold">{item.model}</h3>
                         <div className="text-sm text-gray-400 mt-1">
                           {item.prompt_tokens.toLocaleString()} prompt tokens
                         </div>
                         <div className="text-sm text-gray-400">
-                          {item.completion_tokens.toLocaleString()} completion tokens
+                          {item.completion_tokens.toLocaleString()} completion
+                          tokens
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-2xl font-bold text-green-400">${item.total_cost.toFixed(4)}</p>
+                        <p className="text-2xl font-bold text-green-400">
+                          ${item.total_cost.toFixed(4)}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -67,19 +79,31 @@ export default function TokenAnalyticsPage() {
             </div>
 
             <div>
-              <h2 className="text-xl font-semibold mb-4">Recent Usage Records</h2>
+              <h2 className="text-xl font-semibold mb-4">
+                Recent Usage Records
+              </h2>
               {analytics?.records && analytics.records.length > 0 ? (
                 <div className="space-y-2">
                   {analytics.records.map((record: any) => (
-                    <div key={record.id} className="bg-gray-800 p-3 rounded-lg border border-gray-700 flex justify-between items-center">
+                    <div
+                      key={record.id}
+                      className="bg-gray-800 p-3 rounded-lg border border-gray-700 flex justify-between items-center"
+                    >
                       <div>
-                        <span className="text-sm font-mono text-blue-300">{record.model}</span>
-                        <span className="text-xs text-gray-500 ml-2">{record.recorded_at}</span>
+                        <span className="text-sm font-mono text-blue-300">
+                          {record.model}
+                        </span>
+                        <span className="text-xs text-gray-500 ml-2">
+                          {record.recorded_at}
+                        </span>
                       </div>
                       <div className="text-sm text-gray-400">
-                        {record.prompt_tokens.toLocaleString()}p / {record.completion_tokens.toLocaleString()}c
+                        {record.prompt_tokens.toLocaleString()}p /{" "}
+                        {record.completion_tokens.toLocaleString()}c
                       </div>
-                      <div className="text-green-400 text-sm">${record.cost_usd.toFixed(6)}</div>
+                      <div className="text-green-400 text-sm">
+                        ${record.cost_usd.toFixed(6)}
+                      </div>
                     </div>
                   ))}
                 </div>
