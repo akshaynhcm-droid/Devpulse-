@@ -1,0 +1,127 @@
+{
+  "name": "devpulse-vscode",
+  "displayName": "DevPulse",
+  "description": "Security and cost monitoring for production AI agents, in your editor.",
+  "version": "0.1.0",
+  "publisher": "devpulse",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other", "Linters"],
+  "keywords": ["devpulse", "security", "llm", "ai", "cost"],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "devpulse.authenticate",
+        "title": "DevPulse: Sign in with API Key"
+      },
+      {
+        "command": "devpulse.signOut",
+        "title": "DevPulse: Sign out"
+      },
+      {
+        "command": "devpulse.refresh",
+        "title": "DevPulse: Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "devpulse.runScan",
+        "title": "DevPulse: Run scan"
+      },
+      {
+        "command": "devpulse.openDashboard",
+        "title": "DevPulse: Open dashboard"
+      },
+      {
+        "command": "devpulse.markFindingResolved",
+        "title": "DevPulse: Mark finding resolved"
+      },
+      {
+        "command": "devpulse.markFindingInProgress",
+        "title": "DevPulse: Mark finding in-progress"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "devpulse",
+          "title": "DevPulse",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "devpulse": [
+        {
+          "id": "devpulse.findings",
+          "name": "Findings",
+          "icon": "$(shield)",
+          "contextualTitle": "DevPulse Findings"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "devpulse.findings",
+        "contents": "Sign in with your DevPulse API key to see findings.\n[Sign in](command:devpulse.authenticate)\n\nGenerate an API key from Settings on the DevPulse dashboard."
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "devpulse.refresh",
+          "when": "view == devpulse.findings",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "devpulse.markFindingResolved",
+          "when": "view == devpulse.findings && viewItem == finding",
+          "group": "inline"
+        },
+        {
+          "command": "devpulse.markFindingInProgress",
+          "when": "view == devpulse.findings && viewItem == finding"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "DevPulse",
+      "properties": {
+        "devpulse.apiUrl": {
+          "type": "string",
+          "default": "http://localhost:3000",
+          "description": "Base URL of the DevPulse backend (e.g. https://api.devpulse.io)."
+        },
+        "devpulse.heartbeatIntervalSec": {
+          "type": "number",
+          "default": 120,
+          "minimum": 30,
+          "description": "Seconds between activity heartbeats sent to the backend. Set to 0 to disable."
+        },
+        "devpulse.trackFileChanges": {
+          "type": "boolean",
+          "default": true,
+          "description": "Send file-change activity events (never includes file contents)."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "check": "tsc --noEmit -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.9.3"
+  }
+}

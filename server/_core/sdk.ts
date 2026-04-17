@@ -145,6 +145,21 @@ class SDKServer {
     } as GetUserInfoResponse;
   }
 
+  private extractApiKey(req: Request): string | null {
+    const header = req.headers["x-api-key"];
+    if (typeof header === "string" && header.trim().length > 0) {
+      return header.trim();
+    }
+    const auth = req.headers.authorization;
+    if (typeof auth === "string" && auth.toLowerCase().startsWith("bearer ")) {
+      const token = auth.slice(7).trim();
+      if (token.length > 0 && token.startsWith("dp_")) {
+        return token;
+      }
+    }
+    return null;
+  }
+
   private parseCookies(cookieHeader: string | undefined) {
     if (!cookieHeader) {
       return new Map<string, string>();
@@ -257,6 +272,17 @@ class SDKServer {
   }
 
   async authenticateRequest(req: Request): Promise<User> {
+    // API key flow (VS Code extension, CLI, CI scanners). Checked before
+    // cookie auth so headless clients never hit the OAuth sync path.
+    const apiKey = this.extractApiKey(req);
+    if (apiKey) {
+      const user = await db.getUserByApiKey(apiKey);
+      if (!user) {
+        throw ForbiddenError("Invalid API key");
+      }
+      return user;
+    }
+
     // Regular authentication flow
     const cookies = this.parseCookies(req.headers.cookie);
     const sessionCookie = cookies.get(COOKIE_NAME);
