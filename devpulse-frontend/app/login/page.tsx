@@ -3,7 +3,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { trpc } from "@/lib/trpc";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/components/AuthProvider";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
@@ -15,7 +14,15 @@ export default function LoginPage() {
   const [showForgot, setShowForgot] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const router = useRouter();
-  const { login } = useAuth();
+
+  const login = trpc.auth.login.useMutation({
+    onSuccess: () => {
+      router.push("/dashboard");
+    },
+    onError: (err: { message: string }) => {
+      setError(err.message || "Invalid email or password");
+    },
+  });
 
   const forgotPassword = trpc.auth.forgotPassword.useMutation({
     onSuccess: () => {
@@ -26,19 +33,10 @@ export default function LoginPage() {
     },
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-
-    try {
-      // For now, direct to OAuth - password auth needs backend endpoint
-      // This is a placeholder for future password-based auth implementation
-      setError(
-        "Please use Google Sign-in for now. Password login coming soon."
-      );
-    } catch {
-      setError("Login failed. Please try again.");
-    }
+    login.mutate({ email: email.trim(), password });
   };
 
   const handleForgotSubmit = async (e: React.FormEvent) => {
@@ -182,17 +180,24 @@ export default function LoginPage() {
           </div>
 
           {/* Email/Password Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-4"
+            data-testid="login-form"
+          >
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">
                 Email
               </label>
               <input
                 type="email"
+                name="email"
+                autoComplete="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="your@email.com"
+                required
               />
             </div>
 
@@ -202,10 +207,13 @@ export default function LoginPage() {
               </label>
               <input
                 type="password"
+                name="password"
+                autoComplete="current-password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="••••••••"
+                required
               />
             </div>
 
@@ -226,24 +234,29 @@ export default function LoginPage() {
               </button>
             </div>
 
-            {error && <p className="text-red-400 text-sm">{error}</p>}
+            {error && (
+              <p className="text-red-400 text-sm" role="alert">
+                {error}
+              </p>
+            )}
 
             <button
               type="submit"
-              className="w-full py-3 bg-slate-700 hover:bg-slate-600 rounded-lg font-medium transition-colors"
+              disabled={login.isPending}
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg font-medium transition-colors"
             >
-              Sign In
+              {login.isPending ? "Signing in..." : "Sign In"}
             </button>
           </form>
 
           <p className="text-center text-gray-400 text-sm">
             Don&apos;t have an account?{" "}
-            <a
-              href={`${APP_URL}/api/oauth/login`}
+            <Link
+              href="/register"
               className="text-blue-400 hover:text-blue-300"
             >
-              Create one with Google
-            </a>
+              Create one
+            </Link>
           </p>
         </div>
       </div>
