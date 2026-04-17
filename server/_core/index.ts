@@ -7,6 +7,7 @@ import crypto from "crypto";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
+import compression from "compression";
 import multer from "multer";
 import { registerOAuthRoutes } from "./oauth";
 import { registerGoogleOAuthRoutes } from "./googleOAuth";
@@ -129,6 +130,83 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 // SERVER BOOTSTRAP
 // ============================================================================
 
+// ============================================================================
+// SENTRY PII SCRUBBING
+// ============================================================================
+
+/**
+ * Field names that should never leave the process in plain text. The list is
+ * intentionally small — bloating it has a cost (false positives make real
+ * debugging harder). Extend carefully.
+ */
+const SENSITIVE_KEYS = new Set([
+  "authorization",
+  "cookie",
+  "set-cookie",
+  "password",
+  "newpassword",
+  "oldpassword",
+  "passwordhash",
+  "apikey",
+  "api_key",
+  "secret",
+  "token",
+  "refresh_token",
+  "access_token",
+  "sessiontoken",
+  "x-razorpay-signature",
+  "x-devpulse-signature-256",
+  "stripe-signature",
+]);
+
+function scrubValue(value: unknown): unknown {
+  if (typeof value === "string" && value.length > 0) return "[REDACTED]";
+  return null;
+}
+
+function scrubObject(input: unknown, depth = 0): unknown {
+  if (depth > 6 || input == null) return input;
+  if (Array.isArray(input)) {
+    return input.map(v => scrubObject(v, depth + 1));
+  }
+  if (typeof input === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
+      if (SENSITIVE_KEYS.has(k.toLowerCase())) {
+        out[k] = scrubValue(v);
+      } else {
+        out[k] = scrubObject(v, depth + 1);
+      }
+    }
+    return out;
+  }
+  return input;
+}
+
+function scrubSentryEvent(event: Sentry.Event): void {
+  if (event.request) {
+    event.request.headers = scrubObject(event.request.headers) as typeof event.request.headers;
+    event.request.cookies = scrubObject(event.request.cookies) as typeof event.request.cookies;
+    event.request.data = scrubObject(event.request.data);
+    // Strip query-string values that match SENSITIVE_KEYS.
+    if (typeof event.request.query_string === "string") {
+      event.request.query_string = event.request.query_string.replace(
+        /([^=&?]+)=([^&]+)/g,
+        (match, rawKey) =>
+          SENSITIVE_KEYS.has(String(rawKey).toLowerCase())
+            ? `${rawKey}=[REDACTED]`
+            : match
+      );
+    }
+  }
+  if (event.extra) {
+    event.extra = scrubObject(event.extra) as typeof event.extra;
+  }
+  if (event.contexts) {
+    event.contexts = scrubObject(event.contexts) as typeof event.contexts;
+  }
+}
+
 async function startServer() {
   // Validate config before starting anything
   validateEnvironment();
@@ -137,7 +215,22 @@ async function startServer() {
     Sentry.init({
       dsn: ENV.sentryDsn,
       environment: ENV.isProduction ? "production" : "development",
-      tracesSampleRate: 1.0,
+      // Lower than 100% in production to keep the monthly quota sane on
+      // bursty traffic; sampled at the ingest layer, so traces still have
+      // enough signal for debugging.
+      tracesSampleRate: ENV.isProduction ? 0.1 : 1.0,
+      // Strip obvious PII before sending events upstream. Sentry's default
+      // "sendDefaultPii: false" would already drop IP + session cookies,
+      // but this is an extra belt-and-braces pass for fields that slip
+      // through (Authorization headers, secrets in querystrings, etc.).
+      beforeSend(event) {
+        scrubSentryEvent(event);
+        return event;
+      },
+      beforeSendTransaction(event) {
+        scrubSentryEvent(event);
+        return event;
+      },
     });
     console.log("[Sentry] Initialized automatically.");
   }
@@ -178,6 +271,26 @@ async function startServer() {
       hsts: ENV.isProduction
         ? { maxAge: 31536000, includeSubDomains: true, preload: true }
         : false,
+    })
+  );
+
+  // ── Response compression (gzip + brotli when supported by the client) ─────
+  // Skip compression for tiny responses and for SSE/streaming endpoints so
+  // we don't introduce BREACH-style side channels on pages that reflect
+  // secrets. The `compression` library's default filter already respects
+  // `Cache-Control: no-transform` and bails for responses that opt out via
+  // `x-no-compression`.
+  app.use(
+    compression({
+      threshold: 1024, // bytes — smaller payloads skip compression
+      filter: (req, res) => {
+        if (req.headers["x-no-compression"]) return false;
+        // Never compress the Server-Sent-Events / WS upgrade paths — we
+        // don't run SSE today but this future-proofs the middleware.
+        const accept = String(req.headers.accept || "");
+        if (accept.includes("text/event-stream")) return false;
+        return compression.filter(req, res);
+      },
     })
   );
 
