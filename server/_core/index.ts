@@ -401,6 +401,104 @@ async function startServer() {
     }
   );
 
+  // ── Stripe Webhook ────────────────────────────────────────────────────────
+  // Stripe is supported as an alternative / addition to the primary Razorpay
+  // flow. Mount this handler only if STRIPE_SECRET_KEY and
+  // STRIPE_WEBHOOK_SECRET are configured, and skip it if the `stripe`
+  // package is not installed in the runtime.
+  const stripeSecret = process.env.STRIPE_SECRET_KEY;
+  const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (stripeSecret && stripeWebhookSecret) {
+    try {
+      const StripeModule = await import("stripe");
+      const Stripe = StripeModule.default;
+      const stripe = new Stripe(stripeSecret);
+
+      app.post(
+        "/api/webhooks/stripe",
+        express.raw({ type: "application/json" }),
+        async (req, res) => {
+          const sig = req.headers["stripe-signature"] as string | undefined;
+          if (!sig) {
+            res.status(400).json({ error: "Missing stripe-signature" });
+            return;
+          }
+
+          let event: import("stripe").Stripe.Event;
+          try {
+            event = stripe.webhooks.constructEvent(
+              req.body,
+              sig,
+              stripeWebhookSecret
+            );
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.warn(
+              `[Stripe] Webhook signature verification failed: ${msg}`
+            );
+            res.status(400).json({ error: "Invalid signature" });
+            return;
+          }
+
+          try {
+            const dbMod = await import("../db");
+            switch (event.type) {
+              case "checkout.session.completed": {
+                const session =
+                  event.data.object as import("stripe").Stripe.Checkout.Session;
+                const userId = parseInt(session.metadata?.userId ?? "0", 10);
+                const plan = (session.metadata?.plan ?? "pro") as
+                  | "pro"
+                  | "enterprise";
+                if (userId > 0) {
+                  await dbMod.updateUserPlan(userId, plan);
+                  console.log(
+                    `[Stripe] checkout.session.completed: user ${userId} → ${plan}`
+                  );
+                }
+                break;
+              }
+              case "customer.subscription.deleted": {
+                const sub =
+                  event.data.object as import("stripe").Stripe.Subscription;
+                const userId = parseInt(sub.metadata?.userId ?? "0", 10);
+                if (userId > 0) {
+                  await dbMod.updateUserPlan(userId, "free");
+                  console.log(
+                    `[Stripe] customer.subscription.deleted: user ${userId} → free`
+                  );
+                }
+                break;
+              }
+              case "invoice.payment_failed": {
+                const inv =
+                  event.data.object as import("stripe").Stripe.Invoice;
+                console.warn(
+                  `[Stripe] invoice.payment_failed: invoice ${inv.id}`
+                );
+                break;
+              }
+              default:
+                // ignore other event types
+                break;
+            }
+            res.json({ received: true, type: event.type });
+          } catch (err) {
+            console.error("[Stripe] Webhook processing error:", err);
+            Sentry.captureException(err);
+            res.status(500).json({ error: "Webhook processing failed" });
+          }
+        }
+      );
+      console.log("[Stripe] Webhook handler mounted at /api/webhooks/stripe");
+    } catch (err) {
+      console.warn(
+        "[Stripe] `stripe` package not available — skipping webhook mount:",
+        err instanceof Error ? err.message : err
+      );
+    }
+  }
+
   // ── File Upload for Collections ────────────────────────────────────────────
   const upload = multer({
     storage: multer.memoryStorage(),

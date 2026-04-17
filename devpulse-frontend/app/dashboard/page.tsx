@@ -147,7 +147,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
             <h3 className="text-gray-400 text-sm uppercase tracking-wide">
               Total LLM Spend
@@ -182,8 +182,20 @@ export default function Dashboard() {
             <p className="text-xs text-gray-500 mt-2">Total API interactions</p>
           </div>
 
+          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+            <h3 className="text-gray-400 text-sm uppercase tracking-wide">
+              Anomalies
+            </h3>
+            <p className="text-4xl font-bold mt-2 text-orange-400">
+              {logs.filter(l => l.anomaly).length}
+            </p>
+            <p className="text-xs text-gray-500 mt-2">
+              Cost spikes this session
+            </p>
+          </div>
+
           {anomalyActive && (
-            <div className="md:col-span-3 bg-red-900/30 p-6 rounded-lg border border-red-500">
+            <div className="sm:col-span-2 lg:col-span-4 bg-red-900/30 p-6 rounded-lg border border-red-500">
               <h3 className="text-red-400 font-bold text-lg">
                 Anomaly Detected
               </h3>

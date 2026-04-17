@@ -114,3 +114,59 @@ export async function getAllUsers() {
 
   return db.select().from(users);
 }
+
+/**
+ * Look up a user by their DevPulse API key (as used by the VS Code
+ * extension and any `Bearer dp_*` / `x-api-key` callers).
+ */
+export async function getUserByApiKey(apiKey: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.apiKey, apiKey))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+/**
+ * Overwrite a user's API key. Pair with a rotation flow in the dashboard.
+ */
+export async function updateUserApiKey(userId: number, apiKey: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db
+    .update(users)
+    .set({ apiKey, updatedAt: new Date() })
+    .where(eq(users.id, userId));
+}
+
+/**
+ * Record an activity event from the VS Code extension. The `data` blob is
+ * stored as JSON and must never contain file contents.
+ */
+export async function recordVSCodeActivity(
+  userId: number,
+  type: string,
+  data: Record<string, unknown>,
+  timestamp: Date
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // `vscodeActivities` is re-exported from server/db/index.ts
+  const { vscodeActivities } = await import("../../../drizzle/schema");
+
+  const id = `vsa_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  await db.insert(vscodeActivities).values({
+    id,
+    userId,
+    type,
+    data: data as unknown,
+    timestamp,
+  });
+  return { id };
+}

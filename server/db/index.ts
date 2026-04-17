@@ -19,3 +19,4 @@ export * from "../../drizzle/schema";
 
 // Export query modules
 export * from "./queries/users";
+export * from "./queries/collections";

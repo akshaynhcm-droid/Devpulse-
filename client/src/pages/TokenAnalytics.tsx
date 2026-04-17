@@ -86,7 +86,7 @@ export default function TokenAnalytics() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card className="p-6 space-y-2">
           <p className="text-sm font-medium text-muted-foreground">
             Total Tokens (30 days)
@@ -126,7 +126,8 @@ export default function TokenAnalytics() {
             Token Usage by Model
           </h2>
           {analytics?.byModel && analytics.byModel.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
+            <div className="overflow-x-auto">
+              <ResponsiveContainer width="100%" height={300} minWidth={280}>
               <BarChart data={analytics.byModel}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis dataKey="model" stroke="var(--muted-foreground)" />
@@ -158,6 +159,7 @@ export default function TokenAnalytics() {
                 />
               </BarChart>
             </ResponsiveContainer>
+            </div>
           ) : (
             <div className="h-[300px] flex items-center justify-center text-muted-foreground">
               No data available
@@ -269,7 +271,7 @@ export default function TokenAnalytics() {
         </div>
 
         {analytics?.byModel && analytics.byModel.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {analytics.byModel.map((model: any) => (
               <Card
                 key={model.model}

@@ -73,6 +73,11 @@
       {
         "command": "devpulse.markFindingInProgress",
         "title": "DevPulse: Mark finding in-progress"
+      },
+      {
+        "command": "devpulse.openSecurityPanel",
+        "title": "DevPulse: Open security dashboard",
+        "icon": "$(shield)"
       }
     ],
     "viewsContainers": {
@@ -125,8 +130,8 @@
       "properties": {
         "devpulse.apiUrl": {
           "type": "string",
-          "default": "http://localhost:3000",
-          "description": "Base URL of the DevPulse backend (e.g. https://api.devpulse.io)."
+          "default": "https://api.devpluse.in",
+          "description": "Base URL of the DevPulse backend (default: https://api.devpluse.in — self-hosted users can override to e.g. https://api.your-company.com or http://localhost:3000)."
         },
         "devpulse.heartbeatIntervalSec": {
           "type": "number",

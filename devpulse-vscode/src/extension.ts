@@ -18,6 +18,7 @@ import {
 import { FindingsTreeProvider } from "./findingsProvider";
 import { DevPulseStatusBar } from "./statusBar";
 import { HeartbeatService } from "./heartbeat";
+import { SecurityWebviewPanel } from "./securityWebviewPanel";
 
 const SECRET_API_KEY = "devpulse.apiKey";
 
@@ -187,7 +188,16 @@ export async function activate(
     vscode.commands.registerCommand(
       "devpulse.markFindingInProgress",
       async (node: unknown) => updateFindingStatusCmd(node, "in-progress")
-    )
+    ),
+    vscode.commands.registerCommand("devpulse.openSecurityPanel", () => {
+      if (!cachedApiKey) {
+        void vscode.window.showWarningMessage(
+          "DevPulse: sign in with an API key first."
+        );
+        return;
+      }
+      SecurityWebviewPanel.createOrShow(context.extensionUri, api);
+    })
   );
 
   async function updateFindingStatusCmd(
