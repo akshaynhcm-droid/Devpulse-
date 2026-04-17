@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure, editorProcedure } from "../_core/trpc";
 import * as db from "../db";
 import {
@@ -7,6 +8,7 @@ import {
   cacheKeys,
   invalidateUserCache,
 } from "../_core/cache";
+import { getPlanLimits } from "../payments";
 
 export const collectionsRouter = router({
   create: editorProcedure
@@ -22,6 +24,22 @@ export const collectionsRouter = router({
       if (!input.data || typeof input.data !== "object") {
         throw new Error("Invalid collection data: must be a JSON object");
       }
+
+      // Plan-limit enforcement: free users are capped at `maxCollections`.
+      // Existing collections above the cap are grandfathered — we only
+      // block NEW creation. Pro / Enterprise resolve to Infinity.
+      const plan = (ctx.user.plan ?? "free") as "free" | "pro" | "enterprise";
+      const limits = getPlanLimits(plan);
+      if (Number.isFinite(limits.maxCollections)) {
+        const existing = await db.getCollectionsByUserId(ctx.user.id);
+        if (existing.length >= limits.maxCollections) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: `Your ${plan} plan allows ${limits.maxCollections} collections. Upgrade at /pricing to add more.`,
+          });
+        }
+      }
+
       const collection = await db.createCollection(
         ctx.user.id,
         input.name,

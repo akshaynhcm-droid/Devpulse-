@@ -19,11 +19,15 @@ import Team from "./pages/Team";
 import Onboarding from "./pages/Onboarding";
 import Pricing from "./pages/Pricing";
 import CollectionDetail from "./pages/CollectionDetail";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 
 function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path={"/login"} component={Login} />
+      <Route path={"/signup"} component={Signup} />
       <Route path={"/invite/:token"} component={Invite} />
       <Route path={"/onboarding"} component={Onboarding} />
 

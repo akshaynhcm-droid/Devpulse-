@@ -1,9 +1,11 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure, editorProcedure } from "../_core/trpc";
 import * as db from "../db";
 import { runCollectionScan } from "../services/scanService";
 import { wsManager } from "../websocket";
 import { invalidateUserCache } from "../_core/cache";
+import { getPlanLimits } from "../payments";
 
 export const scanningRouter = router({
   startScan: editorProcedure
@@ -17,6 +19,29 @@ export const scanningRouter = router({
       const collection = await db.getCollectionById(input.collectionId);
       if (!collection || collection.userId !== ctx.user.id) {
         throw new Error("Collection not found or access denied");
+      }
+
+      // Plan-limit enforcement: cap scans per day on free plan. Shadow-API
+      // scans are a gated feature entirely — only pro/enterprise.
+      const plan = (ctx.user.plan ?? "free") as "free" | "pro" | "enterprise";
+      const limits = getPlanLimits(plan);
+      if (input.scanType === "shadow_api" && !limits.shadowAPI) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: `Shadow API detection requires a Pro plan. Upgrade at /pricing to unlock.`,
+        });
+      }
+      if (Number.isFinite(limits.maxScansPerDay)) {
+        const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const recentScans = (
+          await db.getScansByCollectionId(input.collectionId)
+        ).filter(s => s.createdAt >= since);
+        if (recentScans.length >= limits.maxScansPerDay) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: `Your ${plan} plan allows ${limits.maxScansPerDay} scans per day per collection. Upgrade at /pricing to lift this limit.`,
+          });
+        }
       }
 
       // Broadcast scan started event

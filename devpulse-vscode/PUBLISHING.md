@@ -19,14 +19,29 @@ in `.vscodeignore`).
 
 ## 2. One-time publisher setup
 
+> **Prerequisite:** `vsce publish` will fail unless the publisher ID in
+> `package.json` (`"publisher": "devpulse"`) resolves to an account you
+> own on marketplace.visualstudio.com. If `devpulse` is already taken by
+> someone else, or you do not yet have an Azure DevOps account, the
+> steps below are mandatory before any publish command will work. This
+> is a one-time manual setup — it cannot be automated.
+
 1. Create an Azure DevOps account: <https://dev.azure.com/>.
 2. Under **User settings → Personal access tokens**, create a token with:
    - Organization: **All accessible organizations**
    - Scopes → **Custom defined** → **Marketplace → Manage**
    - Expiration: pick the longest you are comfortable with.
 3. Create a publisher at <https://marketplace.visualstudio.com/manage>.
-   The publisher ID must match the `publisher` field in
-   `package.json` (currently `"devpulse"`).
+   The publisher ID **must match exactly** the `publisher` field in
+   `package.json` (currently `"devpulse"`). If the `devpulse` slug is
+   taken, either:
+   - Request transfer of the namespace from the current owner, or
+   - Pick a different publisher ID (e.g. `devpulse-app`, `devpluse`)
+     and update `package.json → publisher` accordingly before
+     publishing. Keep the change in sync across
+     `devpulse-vscode/package.json`,
+     `devpulse-vscode/README.md` badge URLs, and the recommended
+     screenshot links.
 4. Authenticate `vsce` once per machine:
    ```bash
    vsce login devpulse

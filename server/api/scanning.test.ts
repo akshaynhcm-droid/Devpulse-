@@ -197,6 +197,9 @@ describe("scanning router", () => {
 
     it("starts a shadow_api scan type", async () => {
       const { ctx } = createAuthContext(1, "editor");
+      // shadow_api is a Pro-gated scan type (see server/payments.ts
+      // PLAN_CONFIG). Fixture must reflect an upgraded plan.
+      (ctx.user as any).plan = "pro";
       const caller = appRouter.createCaller(ctx);
 
       const { getCollectionById } = await import("../db");
