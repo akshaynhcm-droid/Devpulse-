@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure, editorProcedure } from "../_core/trpc";
 import * as db from "../db";
 import { runCollectionScan } from "../services/scanService";
@@ -9,13 +10,18 @@ import {
   scansPerDayLimitError,
   shadowAPIGatedError,
 } from "../utils/planLimits";
+import { summarizeFindings } from "../utils/findingSummarizer";
+import {
+  INJECTION_PAYLOADS,
+  groupPayloadsByCategory,
+} from "../utils/promptInjectionPayloads";
 
 export const scanningRouter = router({
   startScan: editorProcedure
     .input(
       z.object({
         collectionId: z.string(),
-        scanType: z.enum(["full", "quick", "shadow_api"]),
+        scanType: z.enum(["full", "quick", "shadow_api", "prompt_injection"]),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -106,7 +112,9 @@ export const scanningRouter = router({
         collectionId: z.string(),
         page: z.number().int().min(1).default(1),
         pageSize: z.number().int().min(1).max(100).default(20),
-        scanType: z.enum(["full", "quick", "shadow_api", "all"]).default("all"),
+        scanType: z
+          .enum(["full", "quick", "shadow_api", "prompt_injection", "all"])
+          .default("all"),
       })
     )
     .query(async ({ input, ctx }) => {
@@ -173,6 +181,66 @@ export const scanningRouter = router({
         createdAt: scan.createdAt,
       };
     }),
+
+  /**
+   * Phase 25 — LLM-powered triage summary for a completed scan. Returns
+   * a DevPulse-tuned summary suitable for pasting into a ticket or Slack.
+   * Explicit endpoint (not auto-run on every scan) so users can opt in per
+   * scan and we only burn tokens when a human is actually going to read it.
+   */
+  summarizeScan: protectedProcedure
+    .input(z.object({ scanId: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const scan = await db.getScanById(input.scanId);
+      if (!scan || scan.userId !== ctx.user.id) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Scan not found or access denied",
+        });
+      }
+      const collection = await db.getCollectionById(scan.collectionId);
+      const findings = await db.getFindingsByScanId(input.scanId);
+
+      const summary = await summarizeFindings({
+        scanId: scan.id,
+        collectionName: collection?.name ?? "Untitled collection",
+        scanType: scan.scanType,
+        riskScore: parseFloat(scan.riskScore as any),
+        riskLevel: scan.riskLevel,
+        findings: findings.map(f => ({
+          title: f.title,
+          severity: f.severity,
+          description: f.description,
+          category: f.category,
+          remediation: f.remediation,
+          cweId: f.cweId,
+        })),
+        userId: ctx.user.id,
+      });
+
+      return summary;
+    }),
+
+  /**
+   * Phase 25 — expose the prompt-injection payload library so the
+   * dashboard and VS Code extension can render "what does this scan
+   * actually test for?" without having to re-specify the catalogue.
+   */
+  listPromptInjectionPayloads: protectedProcedure.query(() => {
+    return {
+      total: INJECTION_PAYLOADS.length,
+      byCategory: groupPayloadsByCategory(),
+      payloads: INJECTION_PAYLOADS.map(p => ({
+        id: p.id,
+        category: p.category,
+        severity: p.severity,
+        name: p.name,
+        description: p.description,
+        recommendation: p.recommendation,
+        owaspLlmId: p.owaspLlmId ?? null,
+      })),
+    };
+  }),
 
   updateFindingStatus: protectedProcedure
     .input(

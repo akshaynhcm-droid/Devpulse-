@@ -9,8 +9,10 @@ import {
   calculateRiskScore,
   getRiskLevel,
 } from "../utils/scanning";
+import { generatePromptInjectionFindings } from "../utils/promptInjectionScan";
 import { sendScanCompleteEmail } from "../email";
 import { sendSlackScanAlert } from "../slack";
+import { deliver as deliverWebhook } from "./webhookDelivery";
 
 export interface ScanResult {
   scanId: string;
@@ -26,10 +28,20 @@ export interface ScanResult {
     remediation: string;
     cweId: string;
   }>;
+  /**
+   * Populated when the scan was stopped early by the ScanBudget
+   * diminishing-returns heuristic. Lets callers surface "we stopped early
+   * because further scanning wasn't finding anything new" in the UI.
+   */
+  budget?: {
+    stopped: boolean;
+    iterationsRun: number;
+    reason?: string;
+  };
 }
 
 export interface ScanOptions {
-  scanType: "full" | "quick" | "shadow_api";
+  scanType: "full" | "quick" | "shadow_api" | "prompt_injection";
   triggeredBy?: "user" | "github_push" | "github_pr";
   prNumber?: number;
   branch?: string;
@@ -50,8 +62,44 @@ export async function runCollectionScan(
     throw new Error("Collection not found");
   }
 
-  // Generate findings
-  const findings = generateRealFindings(collection.data);
+  // Fire scan.started webhook for any user-registered endpoints. Slack
+  // integration stays on scan.complete only (parity with pre-webhook
+  // behaviour); webhook subscribers get both events so they can correlate.
+  try {
+    await deliverWebhook(userId, "scan.started", {
+      collectionId,
+      collectionName: collection.name,
+      scanType: options.scanType,
+      triggeredBy: options.triggeredBy || "user",
+    });
+  } catch (err) {
+    console.warn("[ScanService] scan.started webhook failed:", err);
+  }
+
+  // Generate findings. Prompt-injection scans use a dedicated payload-aware
+  // scanner with a scan budget; everything else goes through the original
+  // heuristic pipeline so we don't change behaviour for existing flows.
+  let findings: ReturnType<typeof generateRealFindings> = [];
+  let budget: ScanResult["budget"];
+  if (options.scanType === "prompt_injection") {
+    const piResult = generatePromptInjectionFindings(collection.data);
+    // Shape-compat: promptInjection findings carry a couple of extra fields
+    // (endpoint, method, payloadId) that the generic finding pipeline
+    // doesn't persist — we ignore those when writing to DB but keep them
+    // in the in-memory findings list so the API caller can see them.
+    findings = piResult.findings.map(f => ({
+      id: f.id,
+      title: f.title,
+      severity: f.severity,
+      description: f.description,
+      category: f.category,
+      remediation: f.remediation,
+      cweId: f.cweId,
+    }));
+    budget = piResult.budget;
+  } else {
+    findings = generateRealFindings(collection.data);
+  }
   const riskScore = calculateRiskScore(findings);
   const riskLevel = getRiskLevel(riskScore);
 
@@ -134,11 +182,58 @@ export async function runCollectionScan(
     console.warn("[ScanService] Failed to send Slack notification:", error);
   }
 
+  // Fire lifecycle webhooks (Phase 25). These run *in addition to* the
+  // Slack alert so existing customers keep their Slack flow and new
+  // customers get a pluggable HTTP webhook instead.
+  try {
+    await deliverWebhook(userId, "scan.complete", {
+      scanId: scan.id,
+      collectionId,
+      collectionName: collection.name,
+      scanType: options.scanType,
+      riskScore,
+      riskLevel,
+      totalFindings: findings.length,
+      criticalCount,
+      highCount,
+      triggeredBy: options.triggeredBy || "user",
+      prNumber: options.prNumber,
+      branch: options.branch,
+      budget,
+    });
+  } catch (error) {
+    console.warn("[ScanService] scan.complete webhook failed:", error);
+  }
+
+  // Per-finding webhooks for Critical & High only — we don't want to
+  // spam subscribers with every Medium/Low item. Fire in parallel but
+  // never fail the scan if a single one errors.
+  const notable = findings.filter(
+    f => f.severity === "Critical" || f.severity === "High"
+  );
+  if (notable.length > 0) {
+    await Promise.allSettled(
+      notable.map(f =>
+        deliverWebhook(userId, "finding.discovered", {
+          scanId: scan.id,
+          collectionId,
+          collectionName: collection.name,
+          findingId: f.id,
+          title: f.title,
+          severity: f.severity,
+          category: f.category,
+          cweId: f.cweId,
+        })
+      )
+    );
+  }
+
   return {
     scanId: scan.id,
     riskScore,
     riskLevel,
     totalFindings: findings.length,
     findings,
+    budget,
   };
 }

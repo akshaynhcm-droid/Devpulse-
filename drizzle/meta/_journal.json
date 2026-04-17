@@ -29,6 +29,13 @@
       "when": 1776421414202,
       "tag": "0003_vscode_api_and_passwords",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1776664800000,
+      "tag": "0004_prompt_injection_and_webhooks",
+      "breakpoints": true
     }
   ]
 }

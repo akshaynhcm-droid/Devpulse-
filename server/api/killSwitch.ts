@@ -3,6 +3,7 @@ import { router, protectedProcedure, editorProcedure } from "../_core/trpc";
 import * as db from "../db";
 import { sendSlackKillSwitchAlert } from "../slack";
 import { sendKillSwitchRecoveryEmail } from "../email";
+import { deliver as deliverWebhook } from "../services/webhookDelivery";
 
 export const killSwitchRouter = router({
   setBudget: editorProcedure
@@ -54,6 +55,20 @@ export const killSwitchRouter = router({
           ? parseFloat(settings.budgetLimitUSD as any)
           : 0,
       }).catch(err => console.warn("[KillSwitch] Slack alert failed:", err));
+      // Also dispatch a kill_switch.triggered webhook for any user
+      // endpoints subscribed to that event (Phase 25). Fire-and-forget.
+      deliverWebhook(ctx.user.id, "kill_switch.triggered", {
+        reason: input.reason,
+        currentSpend: settings?.currentSpendUSD
+          ? parseFloat(settings.currentSpendUSD as any)
+          : 0,
+        budgetLimit: settings?.budgetLimitUSD
+          ? parseFloat(settings.budgetLimitUSD as any)
+          : 0,
+        triggeredBy: "user",
+      }).catch(err =>
+        console.warn("[KillSwitch] webhook dispatch failed:", err)
+      );
       return { success: true };
     }),
 

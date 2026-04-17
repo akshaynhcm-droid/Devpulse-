@@ -21,6 +21,11 @@ import {
   emailPreferences,
   auditLog,
   vscodeActivities,
+  webhookEndpoints,
+  webhookDeliveries,
+  type WebhookEndpoint,
+  type InsertWebhookEndpoint,
+  type InsertWebhookDelivery,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { sendWelcomeEmail } from "./email";
@@ -383,7 +388,7 @@ export async function deleteCollection(id: string) {
 export async function createScan(
   userId: number,
   collectionId: string,
-  scanType: "full" | "quick" | "shadow_api",
+  scanType: "full" | "quick" | "shadow_api" | "prompt_injection",
   status: "pending" | "running" | "completed" | "failed",
   riskScore: number,
   riskLevel: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL",
@@ -656,6 +661,19 @@ export async function recordTokenUsage(
             percentUsed,
           });
 
+          // Fire quota.warning webhook for any user-registered endpoints.
+          // Dynamic import to avoid a db.ts → webhookDelivery → db.ts cycle.
+          try {
+            const { deliver } = await import("./services/webhookDelivery");
+            await deliver(userId, "quota.warning", {
+              currentSpend: updatedSpend,
+              budgetLimit,
+              percentUsed,
+            });
+          } catch (err) {
+            console.warn("[BudgetWarning] webhook dispatch failed:", err);
+          }
+
           // Update last warning timestamp
           await updateKillSwitchWarningSent(userId);
         }
@@ -671,6 +689,16 @@ export async function recordTokenUsage(
           updatedSpend,
           `Budget limit of $${budgetLimit.toFixed(2)} exceeded (current spend: $${updatedSpend.toFixed(2)})`
         );
+        try {
+          const { deliver } = await import("./services/webhookDelivery");
+          await deliver(userId, "kill_switch.triggered", {
+            budgetLimit,
+            currentSpend: updatedSpend,
+            reason: "budget_exceeded",
+          });
+        } catch (err) {
+          console.warn("[KillSwitch] webhook dispatch failed:", err);
+        }
       }
     }
   }
@@ -2015,6 +2043,159 @@ export async function getOpenFindingsCount(userId: number): Promise<number> {
     .from(findings)
     .where(and(eq(findings.userId, userId), eq(findings.status, "open")));
   return Number(result[0]?.count ?? 0);
+}
+
+// ============================================================================
+// WEBHOOK ENDPOINTS (Phase 25 — lifecycle webhooks)
+// ============================================================================
+
+/**
+ * Create a webhook endpoint registration. The raw secret is stored as-is
+ * (not hashed) because we need to reproduce the HMAC signature to sign
+ * outgoing deliveries. It is never returned in full from any query except
+ * `getWebhookEndpointById`.
+ */
+export async function createWebhookEndpoint(
+  input: InsertWebhookEndpoint
+): Promise<{ id: string }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(webhookEndpoints).values(input);
+  return { id: input.id };
+}
+
+export async function listWebhookEndpointsByUserId(
+  userId: number
+): Promise<WebhookEndpoint[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return await db
+    .select()
+    .from(webhookEndpoints)
+    .where(eq(webhookEndpoints.userId, userId))
+    .orderBy(desc(webhookEndpoints.createdAt));
+}
+
+export async function getWebhookEndpointById(
+  id: string
+): Promise<WebhookEndpoint | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db
+    .select()
+    .from(webhookEndpoints)
+    .where(eq(webhookEndpoints.id, id))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+/**
+ * Return active endpoints for a user that subscribe to `event`. Filtering
+ * the JSON `events` array happens in app code rather than MySQL because
+ * drizzle's MySQL JSON filter story is still rough across versions.
+ */
+export async function getActiveWebhookEndpoints(
+  userId: number,
+  event: string
+): Promise<WebhookEndpoint[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db
+    .select()
+    .from(webhookEndpoints)
+    .where(
+      and(
+        eq(webhookEndpoints.userId, userId),
+        eq(webhookEndpoints.isActive, true)
+      )
+    );
+  return rows.filter(row => {
+    const events = Array.isArray(row.events) ? row.events : [];
+    return events.includes(event);
+  });
+}
+
+export async function deleteWebhookEndpoint(id: string): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(webhookEndpoints).where(eq(webhookEndpoints.id, id));
+}
+
+export async function updateWebhookEndpointActive(
+  id: string,
+  isActive: boolean
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(webhookEndpoints)
+    .set({ isActive, updatedAt: new Date() })
+    .where(eq(webhookEndpoints.id, id));
+}
+
+export async function recordWebhookSuccess(
+  id: string,
+  status: number
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .update(webhookEndpoints)
+    .set({
+      lastDeliveryAt: new Date(),
+      lastStatus: status,
+      consecutiveFailures: 0,
+      updatedAt: new Date(),
+    })
+    .where(eq(webhookEndpoints.id, id));
+}
+
+/**
+ * Increment failure counter, optionally auto-disabling after a threshold.
+ * The dispatcher computes the new failure count and whether we've crossed
+ * the disable threshold, so this function just applies the set.
+ */
+export async function recordWebhookFailure(
+  id: string,
+  status: number | null,
+  autoDisable: boolean
+): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .update(webhookEndpoints)
+    .set({
+      lastDeliveryAt: new Date(),
+      lastStatus: status,
+      // Raw SQL increment to stay race-free with concurrent deliveries.
+      consecutiveFailures: sql`${webhookEndpoints.consecutiveFailures} + 1`,
+      isActive: autoDisable ? false : undefined,
+      updatedAt: new Date(),
+    })
+    .where(eq(webhookEndpoints.id, id));
+}
+
+export async function createWebhookDelivery(
+  input: InsertWebhookDelivery
+): Promise<{ id: string }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(webhookDeliveries).values(input);
+  return { id: input.id };
+}
+
+export async function listWebhookDeliveries(
+  webhookId: string,
+  limit = 50
+) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db
+    .select()
+    .from(webhookDeliveries)
+    .where(eq(webhookDeliveries.webhookId, webhookId))
+    .orderBy(desc(webhookDeliveries.createdAt))
+    .limit(limit);
 }
 
 export async function getRecentFindingsForUser(userId: number, limit = 5) {

@@ -25,6 +25,7 @@ import { onboardingRouter } from "./api/onboarding";
 import { dashboardRouter } from "./api/dashboard";
 import { adminRouter } from "./api/admin";
 import { paymentsRouter } from "./api/payments";
+import { webhooksRouter } from "./api/webhooks";
 
 import { vscodeExtensionRouter } from "./api/vscodeExtension";
 
@@ -259,6 +260,7 @@ export const appRouter = router({
   vscodeExtension: vscodeExtensionRouter,
   admin: adminRouter,
   payment: paymentsRouter,
+  webhooks: webhooksRouter,
 });
 
 export type AppRouter = typeof appRouter;

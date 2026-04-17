@@ -108,7 +108,12 @@ export const scans = mysqlTable(
     id: varchar("id", { length: 64 }).primaryKey(),
     userId: int("userId").notNull(),
     collectionId: varchar("collectionId", { length: 64 }).notNull(),
-    scanType: mysqlEnum("scanType", ["full", "quick", "shadow_api"]).notNull(),
+    scanType: mysqlEnum("scanType", [
+      "full",
+      "quick",
+      "shadow_api",
+      "prompt_injection",
+    ]).notNull(),
     status: mysqlEnum("status", [
       "pending",
       "running",
@@ -583,3 +588,67 @@ export const auditLog = mysqlTable(
 
 export type AuditLog = typeof auditLog.$inferSelect;
 export type InsertAuditLog = typeof auditLog.$inferInsert;
+
+/**
+ * Lifecycle Webhooks - user-registered HTTP endpoints that DevPulse calls
+ * when events fire (scan.complete, finding.discovered, quota.warning,
+ * kill_switch.triggered). Generalises what the hard-coded Slack integration
+ * already does. Each delivery is signed with an HMAC-SHA256 digest of the
+ * body using the per-endpoint `secret`, same shape Razorpay / Stripe use.
+ */
+export const webhookEndpoints = mysqlTable(
+  "webhook_endpoints",
+  {
+    id: varchar("id", { length: 64 }).primaryKey(),
+    userId: int("userId").notNull(),
+    url: varchar("url", { length: 1024 }).notNull(),
+    // 32-byte random secret, base64-encoded (length 44). Never exposed
+    // after creation except in masked form.
+    secret: varchar("secret", { length: 128 }).notNull(),
+    // Array of event names this endpoint subscribes to. JSON for easy
+    // multi-event subscription without a join table.
+    events: json("events").notNull(),
+    isActive: boolean("isActive").default(true).notNull(),
+    lastDeliveryAt: timestamp("lastDeliveryAt"),
+    lastStatus: int("lastStatus"),
+    // Incremented each failed delivery, reset on success. We auto-disable
+    // an endpoint once this reaches 20 (~a day of retries) to avoid
+    // hammering dead receivers.
+    consecutiveFailures: int("consecutiveFailures").default(0).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    userIdIdx: index("userId_idx").on(table.userId),
+  })
+);
+
+export type WebhookEndpoint = typeof webhookEndpoints.$inferSelect;
+export type InsertWebhookEndpoint = typeof webhookEndpoints.$inferInsert;
+
+/**
+ * Webhook Deliveries - audit trail of every webhook fire. Kept in-table
+ * (rather than just logs) so users can inspect history and retry failed
+ * ones from the dashboard.
+ */
+export const webhookDeliveries = mysqlTable(
+  "webhook_deliveries",
+  {
+    id: varchar("id", { length: 64 }).primaryKey(),
+    webhookId: varchar("webhookId", { length: 64 }).notNull(),
+    event: varchar("event", { length: 64 }).notNull(),
+    payload: json("payload").notNull(),
+    status: int("status"),
+    responseBody: text("responseBody"),
+    errorMessage: text("errorMessage"),
+    deliveredAt: timestamp("deliveredAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => ({
+    webhookIdIdx: index("webhookId_idx").on(table.webhookId),
+    createdAtIdx: index("createdAt_idx").on(table.createdAt),
+  })
+);
+
+export type WebhookDelivery = typeof webhookDeliveries.$inferSelect;
+export type InsertWebhookDelivery = typeof webhookDeliveries.$inferInsert;
