@@ -197,6 +197,28 @@ export async function activate(
         return;
       }
       SecurityWebviewPanel.createOrShow(context.extensionUri, api);
+    }),
+
+    vscode.commands.registerCommand("devpulse.generateApiKey", async () => {
+      if (!cachedApiKey) {
+        void vscode.window.showWarningMessage("Sign in first.");
+        return;
+      }
+      try {
+        const result = await api.generateApiKey();
+        await vscode.env.clipboard.writeText(result.apiKey);
+        // Persist the new key so subsequent calls authenticate correctly.
+        await context.secrets.store(SECRET_API_KEY, result.apiKey);
+        cachedApiKey = result.apiKey;
+        await applySignedInState(true);
+        void vscode.window.showInformationMessage(
+          `Your API key: ${result.apiKey} — it has been copied to clipboard.`
+        );
+      } catch (err) {
+        void vscode.window.showErrorMessage(
+          `DevPulse: could not generate API key — ${errMessage(err)}`
+        );
+      }
     })
   );
 

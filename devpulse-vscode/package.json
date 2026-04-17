@@ -78,6 +78,10 @@
         "command": "devpulse.openSecurityPanel",
         "title": "DevPulse: Open security dashboard",
         "icon": "$(shield)"
+      },
+      {
+        "command": "devpulse.generateApiKey",
+        "title": "DevPulse: Generate API Key"
       }
     ],
     "viewsContainers": {

@@ -176,12 +176,21 @@
 - [x] Performance testing and optimization
 - [x] Security review (see security-patch.md for details)
 - [x] Create checkpoint and prepare for delivery
-- [ ] **BLOCKER**: Apply security patches (password hashing, webhook verification, WebSocket auth)
-- [ ] **BLOCKER**: Fix CI/CD pipeline with real deployment commands
-- [ ] **BLOCKER**: Clean up dual backend architecture (delete devpulse-backend/)
-- [ ] **BLOCKER**: Update VS Code extension to point to actual backend
+- [x] Apply security patches (password hashing ✅, webhook verification ✅, WebSocket auth ✅)
+- [x] Fix CI/CD pipeline with real deployment commands (deploy.yml created ✅)
+- [x] Clean up dual backend architecture (no devpulse-backend/ present ✅)
+- [x] Update VS Code extension to point to actual backend (api.devpluse.in ✅, all DB helpers ✅, tRPC wired ✅)
   - [x] Created `server/api/vscodeExtension.ts` with backend endpoints
-  - [ ] Add `vscodeActivities` table to database schema
-  - [ ] Add `db.getUserByApiKey()` and `db.updateUserApiKey()` helpers
-  - [ ] Update VS Code extension package.json with correct API URL
-  - [ ] Update VS Code extension api/client.ts to use tRPC
+  - [x] Add `vscodeActivities` table to database schema
+  - [x] Add `db.getUserByApiKey()` and `db.updateUserApiKey()` helpers
+  - [x] Update VS Code extension package.json with correct API URL
+  - [x] Update VS Code extension api/client.ts to use tRPC
+
+## Phase 24: Launch Checklist
+
+- [ ] Set RAILWAY_TOKEN secret in GitHub repo settings
+- [ ] Set all other required secrets (DATABASE_URL, STRIPE_SECRET_KEY, SENDGRID_API_KEY, COOKIE_SECRET, SLACK_BOT_TOKEN)
+- [ ] Run `pnpm drizzle-kit push` against production MySQL to apply schema
+- [ ] Publish VS Code extension to marketplace via `vsce publish`
+- [ ] Configure devpluse.in DNS → Railway deployment URL
+- [ ] Set up Railway MySQL addon or external PlanetScale/Railway MySQL

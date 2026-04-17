@@ -120,6 +120,18 @@ export class DevPulseApi {
     });
   }
 
+  /**
+   * Rotate (or mint) the current user's DevPulse API key. Returns the new
+   * key in cleartext — callers should copy it to the clipboard immediately
+   * and avoid logging it.
+   */
+  async generateApiKey(): Promise<{ apiKey: string }> {
+    return this.mutate<{ apiKey: string }>(
+      "vscodeExtension.generateApiKey",
+      undefined
+    );
+  }
+
   // --- internals ---------------------------------------------------------
 
   private async query<T>(path: string, input?: unknown): Promise<T> {
@@ -140,10 +152,11 @@ export class DevPulseApi {
     opts: { apiKeyOverride?: string } = {}
   ): Promise<T> {
     const url = `${this.trpcBase()}/${path}`;
+    const body = input === undefined ? {} : { input };
     const res = await fetch(url, {
       method: "POST",
       headers: this.buildHeaders(opts.apiKeyOverride),
-      body: JSON.stringify({ input }),
+      body: JSON.stringify(body),
     });
     return this.handleResponse<T>(res);
   }
