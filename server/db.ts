@@ -1974,6 +1974,7 @@ export async function updateUser(
     scansRemaining: number;
     onboardingCompleted: boolean;
     plan: "free" | "pro" | "enterprise";
+    role: "user" | "editor" | "admin";
   }>
 ) {
   const db = await getDb();

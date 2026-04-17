@@ -10,6 +10,8 @@ import * as db from "./db";
 import { sendPasswordResetEmail } from "./email";
 import { settingsRouter } from "./settingsRouter";
 import { hashPassword, verifyPassword } from "./utils/password";
+import { users } from "../drizzle/schema";
+import { sql } from "drizzle-orm";
 
 // Import individual routers
 import { collectionsRouter } from "./api/collections";
@@ -63,6 +65,27 @@ export const appRouter = router({
           name: input.name.trim(),
           passwordHash,
         });
+
+        // First user on a fresh deployment is auto-promoted to admin.
+        // This lets a self-hosted operator create their owner account by
+        // just signing up normally instead of running a CLI.
+        try {
+          const driver = await db.getDb();
+          if (driver) {
+            const rows = await driver
+              .select({ n: sql<number>`count(*)` })
+              .from(users);
+            const total = Number(rows[0]?.n ?? 0);
+            if (total === 1) {
+              await db.updateUser(created.id, {
+                role: "admin",
+                plan: "enterprise",
+              });
+            }
+          }
+        } catch (err) {
+          console.warn("[signup] first-user promotion skipped:", err);
+        }
 
         const sessionToken = await sdk.createSessionToken(created.openId, {
           name: input.name.trim(),

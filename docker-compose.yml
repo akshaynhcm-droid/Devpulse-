@@ -1,0 +1,99 @@
+# ============================================
+# DevPulse — One-command self-host
+# ============================================
+# Usage:
+#   1. cp .env.example .env           (edit values — minimum JWT_SECRET)
+#   2. docker compose up -d --build
+#   3. docker compose exec app pnpm db:push
+#
+# Exposes:
+#   - App (tRPC backend + marketing site) on :3000
+#   - MySQL 8.0 on :3306   (volume: devpulse-mysql-data)
+#   - Redis 7 on :6379     (volume: devpulse-redis-data)
+#
+# For production behind a reverse proxy, terminate TLS at Caddy / Traefik
+# / nginx and point it at the `app` service.
+
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-devpulse_root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-devpulse_db}
+      MYSQL_USER: ${MYSQL_USER:-devpulse}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-devpulse_pass}
+    command: >-
+      --default-authentication-plugin=caching_sha2_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - devpulse-mysql-data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-p${MYSQL_ROOT_PASSWORD:-devpulse_root}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - devpulse-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # Override with compose-internal service hostnames. Anything set in
+      # .env (e.g. a managed MySQL/Redis URL) still wins via env_file order
+      # if you remove this block.
+      DATABASE_URL: mysql://${MYSQL_USER:-devpulse}:${MYSQL_PASSWORD:-devpulse_pass}@mysql:3306/${MYSQL_DATABASE:-devpulse_db}
+      REDIS_URL: redis://redis:6379
+      NODE_ENV: production
+      PORT: "3000"
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:3000/api/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  devpulse-mysql-data:
+  devpulse-redis-data:
