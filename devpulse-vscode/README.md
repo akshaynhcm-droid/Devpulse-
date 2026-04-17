@@ -1,30 +1,51 @@
 # DevPulse for VS Code
 
-Monitor DevPulse security findings, LLM cost, and scan status directly in your editor.
+> Monitor DevPulse security findings, LLM cost, and scan status without
+> leaving your editor.
+
+DevPulse pairs with your DevPulse dashboard to surface open security
+findings, kill-switch status, and weekly LLM spend right in the activity
+bar and status bar.
 
 ## Features
 
-- **Findings tree view** grouped by severity (Critical / High / Medium / Low) with inline actions to mark findings in-progress or resolved.
-- **Status bar item** showing open findings count and weekly LLM spend.
-- **Run scan** command that queues a new scan for one of your collections.
-- **Activity heartbeat** that reports editor activity to the DevPulse backend (opt-out via settings).
-- **API-key authentication** — generate a key from the DevPulse dashboard, paste it into VS Code, done.
+- **Findings tree view** grouped by severity (Critical / High / Medium /
+  Low) with inline actions to mark findings in-progress or resolved.
+- **Status bar item** showing open findings count and weekly LLM spend,
+  click-through to the dashboard.
+- **Run scan** command that queues a new scan for any of your
+  collections from the Command Palette.
+- **Activity heartbeat** that reports editor activity to your DevPulse
+  backend so dashboard metrics stay live — never sends file contents.
+- **API-key authentication** — generate a key from the DevPulse
+  dashboard, paste it into VS Code, done. Keys live in VS Code's
+  `SecretStorage`, never in `settings.json`.
 
-## Setup
+## Quick start
 
-1. Run **DevPulse: Sign in with API Key** from the Command Palette.
-2. Paste a key generated from your DevPulse dashboard (Settings → API Keys). The key is stored in VS Code's `SecretStorage`.
-3. Point the extension at your DevPulse backend via the `devpulse.apiUrl` setting if you're self-hosting.
+1. **Install** — from the VS Code Marketplace search for "DevPulse", or
+   drop a `.vsix` from
+   `vsce package` (see `PUBLISHING.md`) onto the Extensions panel.
+2. **Sign in** — open the Command Palette → **DevPulse: Sign in with
+   API Key**. Paste a key from `Settings → API Keys` in the DevPulse
+   dashboard.
+3. **(Self-hosted only)** — set `devpulse.apiUrl` to your backend URL.
+
+Open findings will populate the **DevPulse** view in the activity bar
+within a few seconds, and the status bar will show
+`DevPulse · N open · $X.XX/wk`.
 
 ## Commands
 
-| Command                          | Description                                      |
-| -------------------------------- | ------------------------------------------------ |
-| `DevPulse: Sign in with API Key` | Save your API key into VS Code's secret storage. |
-| `DevPulse: Sign out`             | Remove the saved API key.                        |
-| `DevPulse: Refresh`              | Re-fetch findings and dashboard summary.         |
-| `DevPulse: Run scan`             | Queue a scan for a selected collection.          |
-| `DevPulse: Open dashboard`       | Open the DevPulse web dashboard.                 |
+| Command                              | Description                                              |
+| ------------------------------------ | -------------------------------------------------------- |
+| `DevPulse: Sign in with API Key`     | Save your API key into VS Code's secret storage.         |
+| `DevPulse: Sign out`                 | Remove the saved API key.                                |
+| `DevPulse: Refresh`                  | Re-fetch findings and dashboard summary.                 |
+| `DevPulse: Run scan`                 | Queue a scan for a selected collection.                  |
+| `DevPulse: Open dashboard`           | Open the DevPulse web dashboard in your default browser. |
+| `DevPulse: Mark finding resolved`    | Resolve the currently-selected finding.                  |
+| `DevPulse: Mark finding in-progress` | Mark the currently-selected finding as in-progress.      |
 
 ## Settings
 
@@ -36,13 +57,16 @@ Monitor DevPulse security findings, LLM cost, and scan status directly in your e
 
 ## Privacy
 
-This extension sends a minimal activity stream to the configured DevPulse backend so dashboards stay accurate:
+This extension sends a minimal activity stream to the configured
+DevPulse backend so dashboards stay accurate:
 
 - **heartbeat** — empty payload, periodic.
 - **file_change** — relative file path only (no contents, no diffs).
 - **session_start** / **session_end** — timestamps.
 
-No source code, buffer contents, or git history leave your machine. Disable activity entirely by setting `devpulse.heartbeatIntervalSec` to `0`.
+No source code, buffer contents, or git history ever leaves your
+machine. Disable activity entirely by setting
+`devpulse.heartbeatIntervalSec` to `0`.
 
 ## Building from source
 
@@ -52,7 +76,14 @@ npm install
 npm run compile
 ```
 
-Load the `devpulse-vscode/` folder via **Extensions: Install from VSIX...** or **Run Extension** in the debug panel.
+Load the `devpulse-vscode/` folder via **Extensions: Install from
+VSIX...** or hit **F5** in VS Code to launch an Extension Development
+Host with the extension already loaded.
+
+## Publishing
+
+See [`PUBLISHING.md`](./PUBLISHING.md) for the full vsce +
+Open VSX publishing guide.
 
 ## License
 

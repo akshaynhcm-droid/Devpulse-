@@ -5,19 +5,39 @@
   "version": "0.1.0",
   "publisher": "devpulse",
   "license": "MIT",
+  "icon": "resources/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/akshaynhcm-droid/Devpulse-.git",
+    "directory": "devpulse-vscode"
+  },
+  "bugs": {
+    "url": "https://github.com/akshaynhcm-droid/Devpulse-/issues"
+  },
+  "homepage": "https://github.com/akshaynhcm-droid/Devpulse-#readme",
+  "galleryBanner": {
+    "color": "#0F172A",
+    "theme": "dark"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
   "categories": [
+    "Linters",
     "Other",
-    "Linters"
+    "Testing"
   ],
   "keywords": [
     "devpulse",
     "security",
     "llm",
     "ai",
-    "cost"
+    "cost",
+    "api",
+    "postman",
+    "openapi",
+    "scanning",
+    "monitoring"
   ],
   "main": "./out/extension.js",
   "activationEvents": [
