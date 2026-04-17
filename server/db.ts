@@ -142,12 +142,73 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+// ──────────────────────────────────────────────────────────────────────────
+// In-memory TTL cache for getUserById / getUserPlan.
+//
+// Every authenticated tRPC request goes through `protectedProcedure`, which
+// re-reads the user record from MySQL. On a busy dashboard that's dozens of
+// identical SELECTs per page view. The user row is small, bounded, and
+// changes infrequently, so a 30-second in-memory cache gives us a visible
+// latency win (MySQL round-trip + JSON serialize) at negligible staleness
+// risk.
+//
+// Invalidated explicitly on writes (plan change, password update,
+// upsertUser, etc.) via `invalidateUserCache` below.
+//
+// Bounded at 10k entries with a simple LRU-ish eviction — if we ever serve
+// more than 10k concurrent users, Redis is already wired up and we should
+// route through that instead.
+// ──────────────────────────────────────────────────────────────────────────
+const USER_CACHE_TTL_MS = 30_000;
+const USER_CACHE_MAX = 10_000;
+interface UserCacheEntry {
+  expiresAt: number;
+  value: any;
+}
+const userCache = new Map<number, UserCacheEntry>();
+
+function userCacheGet(id: number): any | undefined {
+  const entry = userCache.get(id);
+  if (!entry) return undefined;
+  if (entry.expiresAt < Date.now()) {
+    userCache.delete(id);
+    return undefined;
+  }
+  return entry.value;
+}
+
+function userCacheSet(id: number, value: any): void {
+  if (userCache.size >= USER_CACHE_MAX) {
+    // Evict the oldest-inserted entry (Map preserves insertion order).
+    const firstKey = userCache.keys().next().value;
+    if (firstKey !== undefined) userCache.delete(firstKey);
+  }
+  userCache.set(id, { expiresAt: Date.now() + USER_CACHE_TTL_MS, value });
+}
+
+/**
+ * Clear a user from the in-memory cache. Call this after any write that
+ * mutates the user row (plan change, password update, lock, unlock, etc.).
+ * No-op when the cache is cold — safe to call redundantly.
+ *
+ * Named distinctly from `_core/cache.ts`'s Redis-backed `invalidateUserCache`
+ * (which clears dashboard/collection caches) so the two can coexist.
+ */
+export function invalidateUserRowCache(userId: number): void {
+  userCache.delete(userId);
+}
+
 export async function getUserById(id: number) {
+  const cached = userCacheGet(id);
+  if (cached !== undefined) return cached;
+
   const db = await getDb();
   if (!db) return undefined;
 
   const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
+  const user = result.length > 0 ? result[0] : undefined;
+  if (user) userCacheSet(id, user);
+  return user;
 }
 
 // ============================================================================
@@ -1172,6 +1233,7 @@ export async function updateUserPlan(
   if (!db) throw new Error("Database not available");
 
   await db.update(users).set({ plan }).where(eq(users.id, userId));
+  invalidateUserRowCache(userId);
 }
 
 export async function getUserPlan(userId: number): Promise<string> {
@@ -1569,6 +1631,7 @@ export async function updateUserProfile(
       updatedAt: new Date(),
     })
     .where(eq(users.id, userId));
+  invalidateUserRowCache(userId);
 }
 
 export async function updateUserPassword(
@@ -1587,6 +1650,7 @@ export async function updateUserPassword(
       updatedAt: new Date(),
     })
     .where(eq(users.id, userId));
+  invalidateUserRowCache(userId);
 }
 
 /**
@@ -1653,6 +1717,7 @@ export async function incrementFailedLoginAttempts(
       updatedAt: new Date(),
     })
     .where(eq(users.id, userId));
+  invalidateUserRowCache(userId);
 
   return { attempts, lockedUntil };
 }
@@ -1670,6 +1735,7 @@ export async function resetFailedLoginAttempts(userId: number): Promise<void> {
       updatedAt: new Date(),
     })
     .where(eq(users.id, userId));
+  invalidateUserRowCache(userId);
 }
 
 // ============================================================================
