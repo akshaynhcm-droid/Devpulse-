@@ -1,24 +1,16 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { EmptyState } from "@/components/EmptyState";
 import { AdminSignupChart, AdminPlanMixChart } from "@/components/AdminCharts";
+import { trpc } from "@/lib/trpc";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
-
-interface AdminUser {
+interface AdminUserView {
   id: number;
   email: string;
   plan: string;
   created_at?: string;
   name?: string;
-}
-
-interface PlatformStats {
-  total_users?: number;
-  pro_users?: number;
-  total_collections?: number;
-  system_healthy?: boolean;
 }
 
 const PLAN_BADGE: Record<string, string> = {
@@ -39,57 +31,36 @@ function formatDate(value?: string): string {
 }
 
 export default function AdminPage() {
-  const [stats, setStats] = useState<PlatformStats | null>(null);
-  const [users, setUsers] = useState<AdminUser[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [planFilter, setPlanFilter] = useState<string>("all");
-  const [busyEmail, setBusyEmail] = useState<string | null>(null);
 
-  const fetchAdminData = async () => {
-    setError(null);
-    try {
-      const [statsRes, usersRes] = await Promise.all([
-        fetch(`${API_BASE}/admin/platform-stats`),
-        fetch(`${API_BASE}/admin/users`),
-      ]);
-      if (!statsRes.ok || !usersRes.ok) {
-        throw new Error(`HTTP ${statsRes.status} / ${usersRes.status}`);
-      }
-      setStats(await statsRes.json());
-      setUsers((await usersRes.json()).users || []);
-    } catch (err) {
-      console.error("Failed to fetch admin data:", err);
-      setError(
-        "Could not load admin data. Check that you have admin privileges and the backend is reachable."
-      );
-    } finally {
-      setLoading(false);
-    }
+  const usersQuery = trpc.admin.listAllUsers.useQuery();
+  const statsQuery = trpc.admin.getSystemStats.useQuery();
+
+  const loading = usersQuery.isLoading || statsQuery.isLoading;
+  const error =
+    usersQuery.error?.message ||
+    statsQuery.error?.message ||
+    null;
+
+  const users = useMemo<AdminUserView[]>(() => {
+    return (usersQuery.data?.users ?? []).map(u => ({
+      id: u.id,
+      email: u.email ?? "",
+      plan: u.plan ?? "free",
+      name: u.name ?? undefined,
+      created_at: u.createdAt
+        ? new Date(u.createdAt).toISOString()
+        : undefined,
+    }));
+  }, [usersQuery.data]);
+
+  const stats = statsQuery.data;
+
+  const refresh = () => {
+    usersQuery.refetch();
+    statsQuery.refetch();
   };
-
-  const upgradeUser = async (email: string) => {
-    setBusyEmail(email);
-    try {
-      const res = await fetch(`${API_BASE}/admin/upgrade`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      if (res.ok) {
-        await fetchAdminData();
-      }
-    } catch (err) {
-      console.error("Failed to upgrade user:", err);
-    } finally {
-      setBusyEmail(null);
-    }
-  };
-
-  useEffect(() => {
-    fetchAdminData();
-  }, []);
 
   const filteredUsers = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -117,10 +88,7 @@ export default function AdminPage() {
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => {
-                setLoading(true);
-                fetchAdminData();
-              }}
+              onClick={refresh}
               className="px-3 py-2 text-sm rounded-md border border-gray-700 text-gray-200 hover:bg-gray-800 transition-colors"
             >
               Refresh
@@ -150,7 +118,7 @@ export default function AdminPage() {
             <div className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
                 <p className="text-sm text-gray-400 mb-1">Total Users</p>
-                <p className="text-3xl font-bold">{stats?.total_users ?? 0}</p>
+                <p className="text-3xl font-bold">{stats?.totalUsers ?? 0}</p>
                 <p className="text-xs text-gray-500 mt-2">
                   {filteredUsers.length} currently visible
                 </p>
@@ -158,41 +126,28 @@ export default function AdminPage() {
               <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
                 <p className="text-sm text-gray-400 mb-1">Pro Users</p>
                 <p className="text-3xl font-bold text-blue-300">
-                  {stats?.pro_users ?? 0}
+                  {stats?.proUsers ?? 0}
                 </p>
                 <p className="text-xs text-gray-500 mt-2">
-                  {stats?.total_users
+                  {stats?.totalUsers
                     ? `${Math.round(
-                        ((stats.pro_users || 0) / stats.total_users) * 100
+                        ((stats.proUsers || 0) / stats.totalUsers) * 100
                       )}% conversion`
                     : "0% conversion"}
                 </p>
               </div>
               <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
-                <p className="text-sm text-gray-400 mb-1">Total Collections</p>
-                <p className="text-3xl font-bold">
-                  {stats?.total_collections ?? 0}
-                </p>
-                <p className="text-xs text-gray-500 mt-2">across all tenants</p>
+                <p className="text-sm text-gray-400 mb-1">Free Users</p>
+                <p className="text-3xl font-bold">{stats?.freeUsers ?? 0}</p>
+                <p className="text-xs text-gray-500 mt-2">on the free tier</p>
               </div>
               <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
-                <p className="text-sm text-gray-400 mb-1">System Health</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span
-                    className={`w-2.5 h-2.5 rounded-full ${
-                      stats?.system_healthy ? "bg-green-500" : "bg-red-500"
-                    }`}
-                  />
-                  <p
-                    className={`text-2xl font-bold ${
-                      stats?.system_healthy ? "text-green-400" : "text-red-400"
-                    }`}
-                  >
-                    {stats?.system_healthy ? "Healthy" : "Degraded"}
-                  </p>
-                </div>
+                <p className="text-sm text-gray-400 mb-1">Active (30d)</p>
+                <p className="text-3xl font-bold text-green-400">
+                  {stats?.activeUsers30d ?? 0}
+                </p>
                 <p className="text-xs text-gray-500 mt-2">
-                  API + DB + queue heartbeat
+                  signed in within 30 days
                 </p>
               </div>
             </div>
@@ -309,18 +264,8 @@ export default function AdminPage() {
                           <td className="px-6 py-3 text-sm text-gray-400">
                             {formatDate(user.created_at)}
                           </td>
-                          <td className="px-6 py-3 text-right">
-                            {user.plan === "free" && (
-                              <button
-                                onClick={() => upgradeUser(user.email)}
-                                disabled={busyEmail === user.email}
-                                className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded text-sm font-medium transition-colors"
-                              >
-                                {busyEmail === user.email
-                                  ? "Upgrading…"
-                                  : "Upgrade to Pro"}
-                              </button>
-                            )}
+                          <td className="px-6 py-3 text-right text-xs text-gray-500">
+                            {user.plan === "free" ? "—" : "Active"}
                           </td>
                         </tr>
                       ))}

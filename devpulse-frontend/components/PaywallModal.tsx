@@ -2,16 +2,7 @@
 
 import { useState } from "react";
 import { X, Zap, Crown, AlertCircle, Loader2, Check } from "lucide-react";
-
-interface Plan {
-  id: string;
-  name: string;
-  amount: number;
-  currency: string;
-  interval: string;
-  features: string[];
-  limits: Record<string, any>;
-}
+import { trpc } from "@/lib/trpc";
 
 interface PaywallModalProps {
   isOpen: boolean;
@@ -21,7 +12,25 @@ interface PaywallModalProps {
   requiredPlan?: "pro" | "enterprise";
   requiredFeature?: string;
   currentPlan?: string;
-  apiBase?: string;
+}
+
+interface RazorpayOptions {
+  key: string;
+  subscription_id: string;
+  name: string;
+  description: string;
+  image: string;
+  handler: () => void;
+  prefill: { email?: string; name?: string };
+  theme: { color: string };
+}
+
+interface RazorpayInstance {
+  open(): void;
+}
+
+interface RazorpayWindow extends Window {
+  Razorpay?: new (opts: RazorpayOptions) => RazorpayInstance;
 }
 
 export default function PaywallModal({
@@ -32,103 +41,56 @@ export default function PaywallModal({
   requiredPlan = "pro",
   requiredFeature,
   currentPlan = "free",
-  apiBase = process.env.NEXT_PUBLIC_API_URL || "/api",
 }: PaywallModalProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [plans, setPlans] = useState<Plan[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const loadPlans = async () => {
-    try {
-      const res = await fetch(`${apiBase}/payment/plans`);
-      const data = await res.json();
-      setPlans(data.result?.data || []);
-    } catch (err) {
-      console.error("Failed to load plans:", err);
-    }
-  };
+  const plansQuery = trpc.payment.getPlans.useQuery(undefined, {
+    enabled: isOpen,
+  });
+  const plans = plansQuery.data ?? [];
 
-  const handleUpgrade = async (planId: string) => {
-    if (planId === "free") return;
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      // Get auth token
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setError("Please log in to upgrade");
-        return;
-      }
-
-      const res = await fetch(`${apiBase}/payment/createSubscription`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ plan: planId }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(
-          errorData.error?.message || "Failed to create subscription"
-        );
-      }
-
-      const result = await res.json();
-      const subData = result.result?.data;
-
-      if (!subData) {
-        throw new Error("Invalid response from server");
-      }
-
-      // Load Razorpay checkout
+  const createSubscription = trpc.payment.createSubscription.useMutation({
+    onSuccess: subData => {
       const script = document.createElement("script");
       script.src = "https://checkout.razorpay.com/v1/checkout.js";
       script.async = true;
       script.onload = () => {
-        const options = {
+        const win = window as RazorpayWindow;
+        if (!win.Razorpay) {
+          setError("Razorpay checkout failed to load.");
+          return;
+        }
+        const options: RazorpayOptions = {
           key: subData.keyId,
           subscription_id: subData.subscriptionId,
           name: "DevPulse",
-          description: `${subData.planName} Subscription`,
+          description: "Subscription",
           image: "/logo.png",
-          handler: function () {
+          handler: () => {
             onClose();
             window.location.reload();
           },
-          prefill: {
-            email: subData.customerEmail,
-            name: subData.customerName,
-          },
-          theme: {
-            color: "#6366f1",
-          },
+          prefill: {},
+          theme: { color: "#6366f1" },
         };
-
-        const rzp = new (window as any).Razorpay(options);
+        const rzp = new win.Razorpay(options);
         rzp.open();
       };
       document.body.appendChild(script);
-    } catch (err: any) {
-      setError(err.message || "Failed to create subscription");
-    } finally {
-      setIsLoading(false);
-    }
+    },
+    onError: (err: { message: string }) =>
+      setError(err.message || "Failed to create subscription"),
+  });
+
+  const handleUpgrade = (planId: string) => {
+    if (planId !== "pro" && planId !== "enterprise") return;
+    setError(null);
+    createSubscription.mutate({ plan: planId });
   };
 
-  // Load plans when modal opens
-  if (isOpen && plans.length === 0) {
-    loadPlans();
-  }
+  const isLoading = createSubscription.isPending;
 
   if (!isOpen) return null;
-
-  const requiredPlanData = plans.find(p => p.id === requiredPlan);
-  const currentPlanData = plans.find(p => p.id === currentPlan);
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">

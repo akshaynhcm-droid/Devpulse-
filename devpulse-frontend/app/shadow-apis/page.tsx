@@ -2,60 +2,61 @@
 import { useState } from "react";
 import Link from "next/link";
 import { EmptyState } from "@/components/EmptyState";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
+import { trpc } from "@/lib/trpc";
 
 export default function ShadowAPIsPage() {
-  const [shadowAPIs, setShadowAPIs] = useState<any[]>([]);
+  const utils = trpc.useUtils();
   const [selectedCollection, setSelectedCollection] = useState("");
-  const [collections, setCollections] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchCollections = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/collections`);
-      const json = await res.json();
-      setCollections(json.collections || []);
-    } catch (err) {
-      console.error("Failed to fetch collections:", err);
-    }
-  };
+  const collectionsQuery = trpc.collections.list.useQuery();
+  const collections = collectionsQuery.data?.collections ?? [];
 
-  const fetchShadowAPIs = async () => {
-    if (!selectedCollection) return;
-    setLoading(true);
-    try {
-      const res = await fetch(
-        `${API_BASE}/shadow-apis/collection/${selectedCollection}`
-      );
-      const json = await res.json();
-      setShadowAPIs(json.shadow_apis || []);
-    } catch (err) {
-      console.error("Failed to fetch shadow APIs:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const shadowQuery = trpc.shadowAPI.listShadowAPIs.useQuery(
+    { collectionId: selectedCollection },
+    { enabled: !!selectedCollection }
+  );
+  const shadowAPIs = shadowQuery.data?.shadowAPIs ?? [];
 
-  const markAsDocumented = async (apiId: string) => {
-    try {
-      const res = await fetch(`${API_BASE}/shadow-apis/${apiId}/document`, {
-        method: "PATCH",
-      });
-      if (res.ok) fetchShadowAPIs();
-    } catch (err) {
-      console.error("Failed to mark as documented:", err);
-    }
-  };
+  const scanMutation = trpc.shadowAPI.scanShadowAPIs.useMutation({
+    onSuccess: () => {
+      if (selectedCollection) {
+        utils.shadowAPI.listShadowAPIs.invalidate({
+          collectionId: selectedCollection,
+        });
+      }
+    },
+    onError: (err: { message: string }) => setError(err.message),
+  });
 
-  useState(() => {
-    fetchCollections();
-  }, []);
+  const markMutation = trpc.shadowAPI.markAsDocumented.useMutation({
+    onSuccess: () => {
+      if (selectedCollection) {
+        utils.shadowAPI.listShadowAPIs.invalidate({
+          collectionId: selectedCollection,
+        });
+      }
+    },
+    onError: (err: { message: string }) => setError(err.message),
+  });
 
   const handleCollectionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedCollection(e.target.value);
-    fetchShadowAPIs();
+    setError(null);
   };
+
+  const handleScan = () => {
+    if (!selectedCollection) return;
+    setError(null);
+    scanMutation.mutate({ collectionId: selectedCollection });
+  };
+
+  const markAsDocumented = (apiId: string) => {
+    setError(null);
+    markMutation.mutate({ shadowApiId: apiId });
+  };
+
+  const loading = !!selectedCollection && shadowQuery.isLoading;
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
@@ -72,22 +73,37 @@ export default function ShadowAPIsPage() {
           </Link>
         </div>
 
-        <div className="mb-8">
-          <label className="block text-sm text-gray-400 mb-1">
-            Select Collection
-          </label>
-          <select
-            value={selectedCollection}
-            onChange={handleCollectionChange}
-            className="w-full max-w-md px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none"
+        {error && (
+          <div className="mb-4 p-3 rounded bg-red-900/40 border border-red-500/50 text-red-300 text-sm">
+            {error}
+          </div>
+        )}
+
+        <div className="mb-8 flex flex-col sm:flex-row gap-3 sm:items-end">
+          <div className="flex-1">
+            <label className="block text-sm text-gray-400 mb-1">
+              Select Collection
+            </label>
+            <select
+              value={selectedCollection}
+              onChange={handleCollectionChange}
+              className="w-full max-w-md px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-blue-500 outline-none"
+            >
+              <option value="">-- Select a collection --</option>
+              {collections.map(col => (
+                <option key={col.id} value={col.id}>
+                  {col.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            onClick={handleScan}
+            disabled={!selectedCollection || scanMutation.isPending}
+            className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 font-medium transition-colors disabled:opacity-50"
           >
-            <option value="">-- Select a collection --</option>
-            {collections.map(col => (
-              <option key={col.id} value={col.id}>
-                {col.name}
-              </option>
-            ))}
-          </select>
+            {scanMutation.isPending ? "Scanning…" : "Scan now"}
+          </button>
         </div>
 
         <div className="space-y-3">
@@ -123,9 +139,9 @@ export default function ShadowAPIsPage() {
               <div
                 key={api.id}
                 className={`p-4 rounded-lg border ${
-                  api.is_documented
+                  api.isDocumented
                     ? "bg-gray-800 border-gray-700"
-                    : api.risk_level === "High"
+                    : api.riskLevel === "HIGH"
                       ? "bg-red-900/30 border-red-500"
                       : "bg-yellow-900/30 border-yellow-500"
                 }`}
@@ -135,29 +151,33 @@ export default function ShadowAPIsPage() {
                     <div className="flex items-center gap-2">
                       <span
                         className={`font-bold text-sm ${
-                          api.risk_level === "High"
+                          api.riskLevel === "HIGH"
                             ? "text-red-400"
                             : "text-yellow-400"
                         }`}
                       >
-                        {api.risk_level.toUpperCase()}
+                        {api.riskLevel}
                       </span>
                       <span className="text-gray-400 text-xs">
                         {api.method}
                       </span>
                     </div>
                     <p className="text-sm mt-1 text-gray-300">{api.endpoint}</p>
-                    <p className="text-xs text-gray-500 mt-1">{api.reason}</p>
+                    {api.reason && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        {api.reason}
+                      </p>
+                    )}
                   </div>
-                  {!api.is_documented && (
+                  {!api.isDocumented ? (
                     <button
                       onClick={() => markAsDocumented(api.id)}
-                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm font-medium transition-colors"
+                      disabled={markMutation.isPending}
+                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm font-medium transition-colors disabled:opacity-50"
                     >
                       Mark Documented
                     </button>
-                  )}
-                  {api.is_documented && (
+                  ) : (
                     <span className="px-3 py-1 bg-gray-700 rounded text-sm text-gray-400">
                       Documented
                     </span>

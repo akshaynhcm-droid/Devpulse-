@@ -2,107 +2,67 @@
 import {
   createContext,
   useContext,
-  useState,
-  useEffect,
-  ReactNode,
+  useCallback,
+  type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
+import { trpc } from "@/lib/trpc";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
+// Auth state is sourced from the Node tRPC backend via `auth.me`.
+// The session is held in an HttpOnly JWT cookie set by the server's
+// `auth.login` / `auth.signup` mutations, so the client no longer
+// touches localStorage. This replaces the legacy Python `/auth/login`
+// + localStorage.token flow.
 
 interface User {
-  id: number;
-  email: string;
-  plan: string;
-  is_admin: boolean;
-  api_key?: string;
+  id?: number | string;
+  email?: string;
+  name?: string;
+  plan?: string;
+  role?: string;
 }
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
+  refresh: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const meQuery = trpc.auth.me.useQuery(undefined, {
+    retry: false,
+    staleTime: 60_000,
+  });
+  const logoutMutation = trpc.auth.logout.useMutation();
 
-  useEffect(() => {
-    const stored = localStorage.getItem("token");
-    const storedUser = localStorage.getItem("user");
-    if (stored && storedUser) {
-      setToken(stored);
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-      }
+  const refresh = useCallback(() => {
+    meQuery.refetch();
+  }, [meQuery]);
+
+  const logout = useCallback(async () => {
+    try {
+      await logoutMutation.mutateAsync();
+    } catch {
+      // Logout is best-effort; cookie expiry will eventually invalidate
+      // the session even if the request fails.
     }
-    setLoading(false);
-  }, []);
-
-  const login = async (email: string, password: string) => {
-    const formData = new URLSearchParams();
-    formData.append("username", email);
-    formData.append("password", password);
-
-    const res = await fetch(`${API_BASE}/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: formData.toString(),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.detail || "Login failed");
-    }
-
-    setToken(data.access_token);
-    setUser(data.user);
-    localStorage.setItem("token", data.access_token);
-    localStorage.setItem("user", JSON.stringify(data.user));
-  };
-
-  const register = async (email: string, password: string) => {
-    const res = await fetch(`${API_BASE}/auth/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.detail || "Registration failed");
-    }
-
-    await login(email, password);
-  };
-
-  const logout = () => {
-    setToken(null);
-    setUser(null);
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    meQuery.refetch();
     router.push("/login");
+  }, [logoutMutation, meQuery, router]);
+
+  const value: AuthContextType = {
+    user: (meQuery.data as User | null | undefined) ?? null,
+    loading: meQuery.isLoading,
+    logout,
+    refresh,
   };
 
   return (
-    <AuthContext.Provider
-      value={{ user, token, loading, login, register, logout }}
-    >
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
   );
 }
 

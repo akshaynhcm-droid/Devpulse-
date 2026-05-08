@@ -1,8 +1,6 @@
 /** @type {import('next').NextConfig} */
 const TS_BACKEND_URL =
   process.env.NEXT_PUBLIC_TS_API_URL || "http://localhost:3000";
-const PYTHON_API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 const nextConfig = {
   // Don't advertise Next.js in response headers. Attackers can still
@@ -48,7 +46,9 @@ const nextConfig = {
   },
   async rewrites() {
     return [
-      // TS backend: OAuth and tRPC
+      // All API traffic goes to the Node tRPC backend. The legacy Python
+      // FastAPI service has been retired; do not proxy unknown /api/* to a
+      // dead host or pages will silently 404 in production.
       {
         source: "/api/oauth/:path*",
         destination: `${TS_BACKEND_URL}/api/oauth/:path*`,
@@ -57,15 +57,9 @@ const nextConfig = {
         source: "/api/trpc/:path*",
         destination: `${TS_BACKEND_URL}/api/trpc/:path*`,
       },
-      // Python backend: auth, agent, security, analytics, admin, payments, webhooks
       {
-        source: "/api/:path*",
-        destination: `${PYTHON_API_URL}/api/:path*`,
-      },
-      // Python backend: webhooks (not under /api)
-      {
-        source: "/webhooks/:path*",
-        destination: `${PYTHON_API_URL}/webhooks/:path*`,
+        source: "/api/health",
+        destination: `${TS_BACKEND_URL}/api/health`,
       },
     ];
   },

@@ -2,66 +2,59 @@
 import { useState } from "react";
 import Link from "next/link";
 import { EmptyState } from "@/components/EmptyState";
+import { trpc } from "@/lib/trpc";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
+type CollectionFormat = "postman" | "openapi";
 
 export default function CollectionsPage() {
-  const [collections, setCollections] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const utils = trpc.useUtils();
+  const { data, isLoading } = trpc.collections.list.useQuery();
+  const collections = data?.collections ?? [];
+
   const [showUpload, setShowUpload] = useState(false);
   const [uploadData, setUploadData] = useState("");
   const [uploadName, setUploadName] = useState("");
-  const [uploadFormat, setUploadFormat] = useState("postman");
+  const [uploadFormat, setUploadFormat] = useState<CollectionFormat>("postman");
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchCollections = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/collections`);
-      const json = await res.json();
-      setCollections(json.collections || []);
-    } catch (err) {
-      console.error("Failed to fetch collections:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const createCollection = trpc.collections.create.useMutation({
+    onSuccess: () => {
+      utils.collections.list.invalidate();
+      setShowUpload(false);
+      setUploadData("");
+      setUploadName("");
+      setError(null);
+    },
+    onError: (err: { message: string }) => setError(err.message),
+  });
 
-  const handleUpload = async () => {
+  const deleteCollection = trpc.collections.delete.useMutation({
+    onSuccess: () => utils.collections.list.invalidate(),
+    onError: (err: { message: string }) => setError(err.message),
+  });
+
+  const handleUpload = () => {
     if (!uploadName.trim() || !uploadData.trim()) return;
+    let parsed: unknown;
     try {
-      const res = await fetch(`${API_BASE}/collections`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: uploadName,
-          format: uploadFormat,
-          data: uploadData,
-        }),
-      });
-      if (res.ok) {
-        setShowUpload(false);
-        setUploadData("");
-        setUploadName("");
-        fetchCollections();
-      }
-    } catch (err) {
-      console.error("Upload failed:", err);
+      parsed = JSON.parse(uploadData);
+    } catch {
+      setError("Collection data must be valid JSON.");
+      return;
     }
+    createCollection.mutate({
+      name: uploadName,
+      format: uploadFormat,
+      data: parsed,
+    });
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      const res = await fetch(`${API_BASE}/collections/${id}`, {
-        method: "DELETE",
-      });
-      if (res.ok) fetchCollections();
-    } catch (err) {
-      console.error("Delete failed:", err);
+  const handleDelete = (id: string) => {
+    if (!window.confirm("Delete this collection? This cannot be undone.")) {
+      return;
     }
+    deleteCollection.mutate({ id });
   };
-
-  useState(() => {
-    fetchCollections();
-  }, []);
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
@@ -71,6 +64,15 @@ export default function CollectionsPage() {
             <h1 className="text-3xl font-bold text-blue-400">Collections</h1>
             <p className="text-gray-400 mt-1">Manage your API collections</p>
           </div>
+        </div>
+
+        {error && (
+          <div className="mb-6 p-3 rounded bg-red-900/40 border border-red-500/50 text-red-300 text-sm">
+            {error}
+          </div>
+        )}
+
+        <div className="flex justify-end mb-6">
           <div className="flex gap-4">
             <button
               onClick={() => setShowUpload(true)}
@@ -109,7 +111,9 @@ export default function CollectionsPage() {
                 </label>
                 <select
                   value={uploadFormat}
-                  onChange={e => setUploadFormat(e.target.value)}
+                  onChange={e =>
+                    setUploadFormat(e.target.value as CollectionFormat)
+                  }
                   className="w-full px-4 py-2 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-blue-500 outline-none"
                 >
                   <option value="postman">Postman</option>
@@ -130,12 +134,16 @@ export default function CollectionsPage() {
               <div className="flex gap-4">
                 <button
                   onClick={handleUpload}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium transition-colors"
+                  disabled={createCollection.isPending}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium transition-colors disabled:opacity-50"
                 >
-                  Import
+                  {createCollection.isPending ? "Importing…" : "Import"}
                 </button>
                 <button
-                  onClick={() => setShowUpload(false)}
+                  onClick={() => {
+                    setShowUpload(false);
+                    setError(null);
+                  }}
                   className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg font-medium transition-colors"
                 >
                   Cancel
@@ -146,7 +154,7 @@ export default function CollectionsPage() {
         )}
 
         <div className="space-y-4">
-          {loading ? (
+          {isLoading ? (
             <p className="text-gray-400">Loading collections...</p>
           ) : collections.length === 0 ? (
             <EmptyState
@@ -178,15 +186,25 @@ export default function CollectionsPage() {
                   </p>
                   <div className="flex gap-4 mt-2 text-xs text-gray-500">
                     <span>{col.format}</span>
-                    <span>{col.total_requests} requests</span>
+                    <span>{col.totalRequests} requests</span>
+                    <span>{new Date(col.createdAt).toLocaleDateString()}</span>
                   </div>
                 </div>
-                <button
-                  onClick={() => handleDelete(col.id)}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-medium transition-colors"
-                >
-                  Delete
-                </button>
+                <div className="flex gap-2">
+                  <Link
+                    href={`/scanning?collection=${col.id}`}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium transition-colors text-sm"
+                  >
+                    Scan
+                  </Link>
+                  <button
+                    onClick={() => handleDelete(col.id)}
+                    disabled={deleteCollection.isPending}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-medium transition-colors disabled:opacity-50"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             ))
           )}

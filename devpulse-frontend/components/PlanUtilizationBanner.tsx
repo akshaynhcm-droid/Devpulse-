@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, TrendingUp, ArrowRight } from "lucide-react";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
+import { trpc } from "@/lib/trpc";
 
 type Window = {
   used: number;
@@ -14,51 +12,28 @@ type Window = {
   status: "ok" | "warning" | "critical";
 };
 
-interface CurrentPlan {
-  plan: "free" | "pro" | "enterprise";
-  status: string;
-  utilization?: {
-    collections: Window;
-    scansPerDay: Window;
-  };
-}
-
 /**
  * Renders a proactive warning banner when the user approaches a plan limit.
- * Inspired by Claude Code's `getRateLimitWarning()` / `getEarlyWarningText()`:
  * - `ok` (<70%): render nothing
  * - `warning` (70-89%): yellow banner with soft upsell
  * - `critical` (90-100%): red banner with hard upsell
  *
- * Uses the `utilization` field returned by `payments.getCurrentPlan` — no
- * separate endpoint, no polling loop; the banner refreshes whenever the
- * dashboard mounts or the user navigates between pages.
+ * Uses the `utilization` field returned by `payments.getCurrentPlan` via tRPC.
  */
 export default function PlanUtilizationBanner() {
-  const [current, setCurrent] = useState<CurrentPlan | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(`${API_BASE}/payments.getCurrentPlan`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({}),
-        });
-        if (res.ok && !cancelled) {
-          const json = await res.json();
-          const data = json?.result?.data ?? json;
-          setCurrent(data);
-        }
-      } catch {
-        /* silent — banner is best-effort */
+  const planQuery = trpc.payment.getCurrentPlan.useQuery(undefined, {
+    retry: false,
+  });
+  const current = planQuery.data as
+    | {
+        plan: "free" | "pro" | "enterprise";
+        status: string;
+        utilization?: {
+          collections: Window;
+          scansPerDay: Window;
+        };
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    | undefined;
 
   if (!current?.utilization) return null;
 

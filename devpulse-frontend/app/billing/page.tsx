@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { format } from "date-fns";
 import { EmptyState } from "@/components/EmptyState";
@@ -23,7 +23,7 @@ interface Invoice {
   status: string;
   receipt: string | null;
   description: string | null;
-  createdAt: string;
+  createdAt: string | Date;
 }
 
 interface Plan {
@@ -33,58 +33,59 @@ interface Plan {
   currency: string;
   interval: string;
   features: string[];
-  limits: Record<string, any>;
+  limits: Record<string, unknown>;
 }
 
 export default function BillingPage() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [subscription, setSubscription] = useState<{
-    plan: string;
-    status: string;
-    currentPeriodStart: string | null;
-    currentPeriodEnd: string | null;
-    cancelAtPeriodEnd: boolean;
-  } | null>(null);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [plans, setPlans] = useState<Plan[]>([]);
+  const utils = trpc.useUtils();
+  const planQuery = trpc.payment.getCurrentPlan.useQuery();
+  const invoicesQuery = trpc.payment.getInvoices.useQuery();
+  const plansQuery = trpc.payment.getPlans.useQuery();
+
   const [error, setError] = useState<string | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
 
-  useEffect(() => {
-    loadBillingData();
-  }, []);
+  const subscription = planQuery.data ?? null;
+  const invoices: Invoice[] = (invoicesQuery.data?.invoices ?? []) as Invoice[];
+  const plans: Plan[] = (plansQuery.data ?? []) as Plan[];
+  const isLoading =
+    planQuery.isLoading ||
+    invoicesQuery.isLoading ||
+    plansQuery.isLoading;
 
-  const loadBillingData = async () => {
-    setIsLoading(true);
-    try {
-      const [statusRes, invoicesRes, plansRes] = await Promise.all([
-        trpc.payment.getSubscriptionStatus.query(),
-        trpc.payment.getInvoices.query(),
-        trpc.payment.getPlans.query(),
-      ]);
-
-      setSubscription(statusRes);
-      setInvoices(invoicesRes.invoices || []);
-      setPlans(plansRes);
-    } catch (err) {
-      setError("Failed to load billing data");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
+  const refreshAll = () => {
+    utils.payment.getCurrentPlan.invalidate();
+    utils.payment.getInvoices.invalidate();
   };
+
+  const createSubscription = trpc.payment.createSubscription.useMutation({
+    onError: (err: { message: string }) => {
+      setError(err.message || "Failed to create subscription");
+    },
+  });
+  const cancelSubscription = trpc.payment.cancel.useMutation({
+    onSuccess: () => {
+      setShowCancelConfirm(false);
+      refreshAll();
+    },
+    onError: (err: { message: string }) => {
+      setError(err.message || "Failed to cancel subscription");
+    },
+  });
+
+  const isProcessing =
+    createSubscription.isPending || cancelSubscription.isPending;
 
   const handleUpgrade = async (planId: string) => {
     if (planId === "free") return;
-
-    setIsProcessing(true);
+    setError(null);
     try {
-      const result = await trpc.payment.createSubscription.mutate({
+      const result = await createSubscription.mutateAsync({
         plan: planId as "pro" | "enterprise",
       });
 
-      // Load Razorpay checkout
+      const planRecord = plans.find(p => p.id === planId);
+
       const script = document.createElement("script");
       script.src = "https://checkout.razorpay.com/v1/checkout.js";
       script.async = true;
@@ -93,45 +94,31 @@ export default function BillingPage() {
           key: result.keyId,
           subscription_id: result.subscriptionId,
           name: "DevPulse",
-          description: `${result.planName} Subscription`,
+          description: `${planRecord?.name ?? "DevPulse"} Subscription`,
           image: "/logo.png",
-          handler: function (response: any) {
-            // Payment successful
-            loadBillingData();
-          },
-          prefill: {
-            email: result.customerEmail,
-            name: result.customerName,
+          handler: function () {
+            refreshAll();
           },
           theme: {
             color: "#6366f1",
           },
         };
-
-        const rzp = new (window as any).Razorpay(options);
+        const rzp = new (
+          window as unknown as {
+            Razorpay: new (o: unknown) => { open: () => void };
+          }
+        ).Razorpay(options);
         rzp.open();
       };
       document.body.appendChild(script);
-    } catch (err) {
-      setError("Failed to create subscription");
-      console.error(err);
-    } finally {
-      setIsProcessing(false);
+    } catch {
+      // already surfaced via onError
     }
   };
 
-  const handleCancel = async (immediately: boolean) => {
-    setIsProcessing(true);
-    try {
-      await trpc.payment.cancelSubscription.mutate({ immediately });
-      setShowCancelConfirm(false);
-      loadBillingData();
-    } catch (err) {
-      setError("Failed to cancel subscription");
-      console.error(err);
-    } finally {
-      setIsProcessing(false);
-    }
+  const handleCancel = (immediately: boolean) => {
+    setError(null);
+    cancelSubscription.mutate({ immediately });
   };
 
   const getStatusColor = (status: string) => {
@@ -158,8 +145,7 @@ export default function BillingPage() {
   };
 
   const currentPlan = plans.find(p => p.id === subscription?.plan);
-  const isPaidPlan =
-    subscription?.plan !== "free" && subscription?.plan !== "none";
+  const isPaidPlan = !!subscription?.plan && subscription.plan !== "free";
 
   if (isLoading) {
     return (
@@ -200,25 +186,14 @@ export default function BillingPage() {
                   )}`}
                 >
                   {subscription?.status === "active" && isPaidPlan
-                    ? subscription?.cancelAtPeriodEnd
-                      ? "Cancels at period end"
-                      : "Active"
+                    ? "Active"
                     : subscription?.status || "None"}
                 </span>
               </div>
 
-              {isPaidPlan && subscription?.currentPeriodEnd && (
-                <p className="text-slate-400">
-                  Next billing date:{" "}
-                  {format(
-                    new Date(subscription.currentPeriodEnd),
-                    "MMMM d, yyyy"
-                  )}
-                </p>
-              )}
             </div>
 
-            {isPaidPlan && !subscription?.cancelAtPeriodEnd && (
+            {isPaidPlan && (
               <button
                 onClick={() => setShowCancelConfirm(true)}
                 className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/50 rounded-lg transition-colors"

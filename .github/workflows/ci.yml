@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  server:
+    name: Server (typecheck + tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.4.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install root dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Typecheck server
+        run: pnpm check
+
+      - name: Run server tests
+        run: pnpm test
+
+  frontend:
+    name: Frontend (typecheck + lint + build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.4.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: devpulse-frontend/pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        working-directory: devpulse-frontend
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Typecheck
+        working-directory: devpulse-frontend
+        run: npx tsc --noEmit
+
+      - name: Lint
+        working-directory: devpulse-frontend
+        run: pnpm lint
+
+      - name: Build
+        working-directory: devpulse-frontend
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: pnpm build

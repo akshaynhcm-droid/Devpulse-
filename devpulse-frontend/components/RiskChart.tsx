@@ -1,33 +1,54 @@
 "use client";
 import React from "react";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+
+// Pure-SVG sparkline chart for cost-velocity. We deliberately avoid
+// `recharts` here: with React 19 + the current recharts release, the
+// forwardRef'd chart components fail `tsc --noEmit` ("cannot be used as
+// a JSX component") and break the production build. Inline SVG is also
+// dramatically smaller in the bundle and has no third-party runtime.
 
 interface RiskChartProps {
   data?: number[];
 }
 
 export default function RiskChart({ data }: RiskChartProps) {
-  const chartData =
+  const series =
     data && data.length > 0
-      ? data.map((val, i) => ({
-          call: i + 1,
-          cost: val,
-        }))
-      : Array.from({ length: 12 }, (_, i) => ({
-          call: i + 1,
-          cost: 40 + Math.random() * 50,
-        }));
+      ? data
+      : Array.from({ length: 12 }, (_, i) => 40 + ((i * 7) % 50));
 
-  const maxVal = Math.max(...chartData.map(d => d.cost));
-  const avgVal = chartData.reduce((a, b) => a + b.cost, 0) / chartData.length;
+  const width = 600;
+  const height = 200;
+  const padding = { top: 16, right: 16, bottom: 24, left: 32 };
+  const innerW = width - padding.left - padding.right;
+  const innerH = height - padding.top - padding.bottom;
+
+  const maxVal = Math.max(...series, 1);
+  const minVal = Math.min(...series, 0);
+  const range = Math.max(maxVal - minVal, 1);
+  const avgVal = series.reduce((a, b) => a + b, 0) / series.length;
+
+  const stepX = series.length > 1 ? innerW / (series.length - 1) : 0;
+  const points = series.map((v, i) => {
+    const x = padding.left + i * stepX;
+    const y = padding.top + innerH - ((v - minVal) / range) * innerH;
+    return { x, y };
+  });
+
+  const linePath = points
+    .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
+    .join(" ");
+  const areaPath = points.length
+    ? `${linePath} L ${points[points.length - 1].x.toFixed(1)} ${(
+        padding.top + innerH
+      ).toFixed(1)} L ${points[0].x.toFixed(1)} ${(padding.top + innerH).toFixed(
+        1
+      )} Z`
+    : "";
+
+  const gridYs = [0, 0.25, 0.5, 0.75, 1].map(
+    f => padding.top + innerH - f * innerH
+  );
 
   return (
     <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 mt-8">
@@ -44,28 +65,57 @@ export default function RiskChart({ data }: RiskChartProps) {
           </div>
         </div>
       </div>
-      <ResponsiveContainer width="100%" height={200}>
-        <AreaChart data={chartData}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-          <XAxis dataKey="call" stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
-          <YAxis stroke="#9CA3AF" tick={{ fill: "#9CA3AF" }} />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: "#1e293b",
-              borderColor: "#475569",
-              color: "#fff",
-            }}
-            itemStyle={{ color: "#fff" }}
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="none"
+        className="w-full h-[200px]"
+      >
+        {gridYs.map((y, i) => (
+          <line
+            key={i}
+            x1={padding.left}
+            x2={width - padding.right}
+            y1={y}
+            y2={y}
+            stroke="#374151"
+            strokeDasharray="3 3"
           />
-          <Area
-            type="monotone"
-            dataKey="cost"
-            stroke="#3b82f6"
-            fill="#3b82f6"
-            fillOpacity={0.3}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
+        ))}
+        {areaPath && <path d={areaPath} fill="#3b82f6" fillOpacity={0.3} />}
+        {linePath && (
+          <path d={linePath} fill="none" stroke="#3b82f6" strokeWidth={2} />
+        )}
+        <text
+          x={padding.left - 6}
+          y={padding.top + 6}
+          textAnchor="end"
+          fontSize="10"
+          fill="#9CA3AF"
+        >
+          {maxVal.toFixed(0)}
+        </text>
+        <text
+          x={padding.left - 6}
+          y={padding.top + innerH}
+          textAnchor="end"
+          fontSize="10"
+          fill="#9CA3AF"
+        >
+          {minVal.toFixed(0)}
+        </text>
+        <text x={padding.left} y={height - 6} fontSize="10" fill="#9CA3AF">
+          1
+        </text>
+        <text
+          x={width - padding.right}
+          y={height - 6}
+          textAnchor="end"
+          fontSize="10"
+          fill="#9CA3AF"
+        >
+          {series.length}
+        </text>
+      </svg>
     </div>
   );
 }

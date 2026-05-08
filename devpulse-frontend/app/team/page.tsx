@@ -1,59 +1,44 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { EmptyState } from "@/components/EmptyState";
+import { trpc } from "@/lib/trpc";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
+type Role = "admin" | "editor" | "viewer";
 
 export default function TeamPage() {
-  const [members, setMembers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const utils = trpc.useUtils();
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState("viewer");
+  const [inviteRole, setInviteRole] = useState<Role>("viewer");
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchMembers = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/team/`);
-      const json = await res.json();
-      setMembers(json.members || []);
-    } catch (err) {
-      console.error("Failed to fetch team:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const teamQuery = trpc.team.list.useQuery();
+  const members = teamQuery.data?.members ?? [];
+  const loading = teamQuery.isLoading;
 
-  const handleInvite = async () => {
+  const inviteMutation = trpc.team.invite.useMutation({
+    onSuccess: () => {
+      setInviteEmail("");
+      utils.team.list.invalidate();
+    },
+    onError: (err: { message: string }) => setError(err.message),
+  });
+
+  const removeMutation = trpc.team.remove.useMutation({
+    onSuccess: () => utils.team.list.invalidate(),
+    onError: (err: { message: string }) => setError(err.message),
+  });
+
+  const handleInvite = () => {
     if (!inviteEmail.trim()) return;
-    try {
-      const res = await fetch(`${API_BASE}/team/invite`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: inviteEmail, role: inviteRole }),
-      });
-      if (res.ok) {
-        setInviteEmail("");
-        fetchMembers();
-      }
-    } catch (err) {
-      console.error("Failed to invite:", err);
-    }
+    setError(null);
+    inviteMutation.mutate({ email: inviteEmail, role: inviteRole });
   };
 
-  const handleRemove = async (memberId: string) => {
-    try {
-      const res = await fetch(`${API_BASE}/team/${memberId}`, {
-        method: "DELETE",
-      });
-      if (res.ok) fetchMembers();
-    } catch (err) {
-      console.error("Failed to remove:", err);
-    }
+  const handleRemove = (memberId: string) => {
+    setError(null);
+    removeMutation.mutate({ memberId });
   };
-
-  useEffect(() => {
-    fetchMembers();
-  }, []);
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
@@ -85,7 +70,7 @@ export default function TeamPage() {
               <label className="block text-sm text-gray-400 mb-1">Role</label>
               <select
                 value={inviteRole}
-                onChange={e => setInviteRole(e.target.value)}
+                onChange={e => setInviteRole(e.target.value as Role)}
                 className="w-full px-4 py-2 rounded-lg bg-gray-700 border border-gray-600 focus:ring-2 focus:ring-blue-500 outline-none"
               >
                 <option value="viewer">Viewer</option>

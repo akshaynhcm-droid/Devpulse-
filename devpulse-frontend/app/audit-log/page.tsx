@@ -1,46 +1,30 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
+import { trpc } from "@/lib/trpc";
 
-interface AuditLog {
-  id: string;
-  action: string;
-  resourceType: string;
-  resourceId?: string;
-  metadata?: any;
-  ipAddress?: string;
-  createdAt: string;
-  userId: number;
-}
+const PAGE_SIZE = 50;
 
 export default function AuditLogPage() {
-  const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [filter, setFilter] = useState("");
 
-  useEffect(() => {
-    fetchLogs();
-  }, [page, filter]);
+  const auditQuery = trpc.settings.getAuditLog.useQuery({ limit: 100 });
 
-  const fetchLogs = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(
-        `/api/trpc/auditLog.list?page=${page}&action=${filter}`
-      );
-      const data = await res.json();
-      setLogs(data.result?.data?.logs || []);
-      setTotalPages(data.result?.data?.totalPages || 1);
-    } catch (error) {
-      console.error("Failed to fetch audit logs:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const filteredLogs = useMemo(() => {
+    const all = auditQuery.data?.logs ?? [];
+    if (!filter) return all;
+    return all.filter(l => l.action === filter);
+  }, [auditQuery.data, filter]);
 
-  const formatDate = (dateStr: string) => {
+  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / PAGE_SIZE));
+  const pagedLogs = filteredLogs.slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE
+  );
+  const loading = auditQuery.isLoading;
+
+  const formatDate = (dateStr: string | Date) => {
     return new Date(dateStr).toLocaleString();
   };
 
@@ -92,7 +76,7 @@ export default function AuditLogPage() {
               </tr>
             </thead>
             <tbody>
-              {logs.map(log => (
+              {pagedLogs.map(log => (
                 <tr key={log.id} data-testid={`audit-entry-${log.action}`}>
                   <td className="border p-2">{formatDate(log.createdAt)}</td>
                   <td className="border p-2">
@@ -105,21 +89,15 @@ export default function AuditLogPage() {
                     </span>
                   </td>
                   <td className="border p-2">
-                    {log.resourceType}
-                    {log.resourceId && (
-                      <span className="text-gray-500 text-sm block">
-                        {log.resourceId}
-                      </span>
-                    )}
-                  </td>
-                  <td className="border p-2">
-                    {log.metadata && (
+                    {log.details ? (
                       <pre className="text-xs">
-                        {JSON.stringify(log.metadata, null, 2)}
+                        {JSON.stringify(log.details, null, 2)}
                       </pre>
+                    ) : (
+                      <span className="text-gray-400">—</span>
                     )}
                   </td>
-                  <td className="border p-2">{log.ipAddress}</td>
+                  <td className="border p-2">{log.ipAddress || "—"}</td>
                 </tr>
               ))}
             </tbody>

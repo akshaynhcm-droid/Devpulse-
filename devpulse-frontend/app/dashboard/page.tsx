@@ -12,7 +12,6 @@ function getWsUrl(): string {
 }
 
 const WS_URL = getWsUrl();
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 interface Message {
   type: string;
@@ -105,25 +104,6 @@ export default function Dashboard() {
     };
   }, [connect]);
 
-  const triggerTestCall = async () => {
-    try {
-      const response = await fetch(`${API_BASE}/agent/interact`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          agent_id: "test-agent-" + Math.floor(Math.random() * 100),
-          model: "gpt-4",
-          prompt_tokens: Math.floor(Math.random() * 2000),
-          completion_tokens: Math.floor(Math.random() * 1000),
-        }),
-      });
-      const data = await response.json();
-      console.log("Test call result:", data);
-    } catch (e) {
-      console.error("Failed to call API:", e);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
       <div className="max-w-7xl mx-auto">
@@ -214,12 +194,6 @@ export default function Dashboard() {
         <div className="mt-8 bg-gray-800 rounded-lg p-6 border border-gray-700">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Live Agent Activity</h2>
-            <button
-              onClick={triggerTestCall}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm font-medium transition-colors"
-            >
-              Simulate API Call
-            </button>
           </div>
           <div className="space-y-2 max-h-96 overflow-y-auto">
             {logs.length === 0 ? (
@@ -227,13 +201,7 @@ export default function Dashboard() {
                 compact
                 icon={<span>📡</span>}
                 title="No activity yet"
-                description='Click "Simulate API Call" to send a test event, or wire up the DevPulse SDK to stream live agent traffic here.'
-                actions={[
-                  {
-                    label: "Simulate API Call",
-                    onClick: triggerTestCall,
-                  },
-                ]}
+                description="Wire up the DevPulse SDK in your app to stream live agent traffic here."
               />
             ) : (
               logs.map((log, i) => (

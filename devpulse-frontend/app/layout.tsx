@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 import { AuthProvider } from "../components/AuthProvider";
 import { CookieConsent } from "../components/CookieConsent";
 import { SentryErrorBoundary } from "../components/ErrorBoundary";
+import { TRPCProvider } from "@/lib/providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,10 +21,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AuthProvider>
-          <SentryErrorBoundary>{children}</SentryErrorBoundary>
-          <CookieConsent />
-        </AuthProvider>
+        <TRPCProvider>
+          <AuthProvider>
+            <SentryErrorBoundary>{children}</SentryErrorBoundary>
+            <CookieConsent />
+          </AuthProvider>
+        </TRPCProvider>
       </body>
     </html>
   );

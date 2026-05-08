@@ -1,27 +1,13 @@
 "use client";
-import { useEffect, useState } from "react";
 import Link from "next/link";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
+import { trpc } from "@/lib/trpc";
 
 export default function TokenAnalyticsPage() {
-  const [analytics, setAnalytics] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchAnalytics = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/token-analytics/`);
-        const json = await res.json();
-        setAnalytics(json);
-      } catch (err) {
-        console.error("Failed to fetch analytics:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAnalytics();
-  }, []);
+  const analyticsQuery = trpc.tokenAnalytics.getAnalytics.useQuery({
+    days: 30,
+  });
+  const analytics = analyticsQuery.data;
+  const loading = analyticsQuery.isLoading;
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
@@ -44,13 +30,32 @@ export default function TokenAnalyticsPage() {
           <p className="text-gray-400">Loading analytics...</p>
         ) : (
           <div>
+            <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                <h3 className="text-gray-400 text-sm uppercase tracking-wide">
+                  Total cost (last 30d)
+                </h3>
+                <p className="text-3xl font-bold mt-2 text-green-400">
+                  ${(analytics?.totalCost ?? 0).toFixed(4)}
+                </p>
+              </div>
+              <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                <h3 className="text-gray-400 text-sm uppercase tracking-wide">
+                  Total tokens (last 30d)
+                </h3>
+                <p className="text-3xl font-bold mt-2 text-blue-400">
+                  {(analytics?.totalTokens ?? 0).toLocaleString()}
+                </p>
+              </div>
+            </div>
+
             <div className="mb-8">
               <h2 className="text-xl font-semibold mb-4">
                 Cost Breakdown by Model
               </h2>
-              {analytics?.breakdown ? (
+              {analytics?.byModel && analytics.byModel.length > 0 ? (
                 <div className="space-y-3">
-                  {analytics.breakdown.map((item: any) => (
+                  {analytics.byModel.map(item => (
                     <div
                       key={item.model}
                       className="bg-gray-800 p-4 rounded-lg border border-gray-700 flex justify-between"
@@ -58,16 +63,16 @@ export default function TokenAnalyticsPage() {
                       <div>
                         <h3 className="font-semibold">{item.model}</h3>
                         <div className="text-sm text-gray-400 mt-1">
-                          {item.prompt_tokens.toLocaleString()} prompt tokens
+                          {item.promptTokens.toLocaleString()} prompt tokens
                         </div>
                         <div className="text-sm text-gray-400">
-                          {item.completion_tokens.toLocaleString()} completion
+                          {item.completionTokens.toLocaleString()} completion
                           tokens
                         </div>
                       </div>
                       <div className="text-right">
                         <p className="text-2xl font-bold text-green-400">
-                          ${item.total_cost.toFixed(4)}
+                          ${item.costUSD.toFixed(4)}
                         </p>
                       </div>
                     </div>
@@ -80,13 +85,13 @@ export default function TokenAnalyticsPage() {
 
             <div>
               <h2 className="text-xl font-semibold mb-4">
-                Recent Usage Records
+                Daily Usage (last 30d)
               </h2>
-              {analytics?.records && analytics.records.length > 0 ? (
-                <div className="space-y-2">
-                  {analytics.records.map((record: any) => (
+              {analytics?.usage && analytics.usage.length > 0 ? (
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {analytics.usage.map((record, i) => (
                     <div
-                      key={record.id}
+                      key={i}
                       className="bg-gray-800 p-3 rounded-lg border border-gray-700 flex justify-between items-center"
                     >
                       <div>
@@ -94,15 +99,14 @@ export default function TokenAnalyticsPage() {
                           {record.model}
                         </span>
                         <span className="text-xs text-gray-500 ml-2">
-                          {record.recorded_at}
+                          {new Date(record.date).toLocaleDateString()}
                         </span>
                       </div>
                       <div className="text-sm text-gray-400">
-                        {record.prompt_tokens.toLocaleString()}p /{" "}
-                        {record.completion_tokens.toLocaleString()}c
+                        {record.tokens.toLocaleString()} tokens
                       </div>
                       <div className="text-green-400 text-sm">
-                        ${record.cost_usd.toFixed(6)}
+                        ${record.cost.toFixed(6)}
                       </div>
                     </div>
                   ))}

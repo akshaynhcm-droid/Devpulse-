@@ -1,16 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import { CheckCircle, Loader2, CreditCard, ArrowRight } from "lucide-react";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
-
-interface CurrentPlan {
-  plan: string;
-  status: string;
-  limits?: Record<string, unknown>;
-}
+import { trpc } from "@/lib/trpc";
 
 /**
  * Razorpay hosted-checkout success redirect target. Razorpay appends
@@ -21,37 +14,19 @@ interface CurrentPlan {
  * confirmation that polls the user's plan until it reflects the upgrade.
  */
 export default function BillingSuccessPage() {
-  const [current, setCurrent] = useState<CurrentPlan | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [attempts, setAttempts] = useState(0);
+  const planQuery = trpc.payment.getCurrentPlan.useQuery(undefined, {
+    refetchInterval: data =>
+      data && (data as { plan?: string }).plan !== "free" ? false : 3000,
+  });
+
+  const current = planQuery.data as { plan?: string } | undefined;
+  const loading = planQuery.isLoading;
 
   useEffect(() => {
-    let cancelled = false;
-    const poll = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/payments.getCurrentPlan`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({}),
-        });
-        if (res.ok && !cancelled) {
-          const json = await res.json();
-          const data = json?.result?.data ?? json;
-          setCurrent(data);
-          setLoading(false);
-          if (data?.plan === "free" && attempts < 20) {
-            setTimeout(() => setAttempts(a => a + 1), 3000);
-          }
-        }
-      } catch {
-        if (!cancelled) setLoading(false);
-      }
-    };
-    poll();
-    return () => {
-      cancelled = true;
-    };
-  }, [attempts]);
+    if (current?.plan && current.plan !== "free") {
+      planQuery.refetch();
+    }
+  }, [current?.plan]);
 
   const upgraded = current?.plan && current.plan !== "free";
 

@@ -6,7 +6,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/components/AuthProvider";
 import { useRouter } from "next/navigation";
 
-type Tab = "profile" | "security" | "notifications" | "danger";
+type Tab = "profile" | "security" | "notifications" | "danger" | "audit";
 
 // ============================================================================
 // PROFILE TAB
@@ -276,9 +276,9 @@ function SecurityTab() {
             sessions?.sessions.map(
               (session: {
                 id: string;
-                userAgent?: string;
-                ipAddress?: string;
-                lastActiveAt: string;
+                userAgent?: string | null;
+                ipAddress?: string | null;
+                lastActiveAt: string | Date;
               }) => (
                 <div
                   key={session.id}
@@ -309,6 +309,183 @@ function SecurityTab() {
             )
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// NOTIFICATIONS TAB
+// ============================================================================
+function NotificationsTab() {
+  const utils = trpc.useUtils();
+  const { data: prefs, isLoading } =
+    trpc.settings.getEmailPreferences.useQuery();
+  const updatePrefs = trpc.settings.updateEmailPreferences.useMutation({
+    onSuccess: () => {
+      utils.settings.getEmailPreferences.invalidate();
+      setMessage({ type: "success", text: "Preferences saved" });
+    },
+    onError: (err: { message: string }) => {
+      setMessage({ type: "error", text: err.message });
+    },
+  });
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+
+  const toggle = (
+    key:
+      | "scanComplete"
+      | "budgetAlerts"
+      | "weeklyDigest"
+      | "teamActivity"
+      | "promotionalEmails",
+    value: boolean
+  ) => {
+    updatePrefs.mutate({ [key]: value });
+  };
+
+  const rows: {
+    key:
+      | "scanComplete"
+      | "budgetAlerts"
+      | "weeklyDigest"
+      | "teamActivity"
+      | "promotionalEmails";
+    label: string;
+    description: string;
+  }[] = [
+    {
+      key: "scanComplete",
+      label: "Scan completion",
+      description: "Get notified when a scan finishes.",
+    },
+    {
+      key: "budgetAlerts",
+      label: "Budget alerts",
+      description: "Warn me when token spend approaches my limit.",
+    },
+    {
+      key: "weeklyDigest",
+      label: "Weekly digest",
+      description: "Send me a weekly summary of risk + cost trends.",
+    },
+    {
+      key: "teamActivity",
+      label: "Team activity",
+      description: "Notify me when teammates run scans or trigger alerts.",
+    },
+    {
+      key: "promotionalEmails",
+      label: "Product updates",
+      description: "Occasional emails about new DevPulse features.",
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-medium text-gray-900">
+          Email Notifications
+        </h3>
+        <p className="text-sm text-gray-500 mt-1">
+          Choose which emails you want to receive from DevPulse.
+        </p>
+      </div>
+
+      {message && (
+        <div
+          className={`p-4 rounded-md ${message.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}
+        >
+          {message.text}
+        </div>
+      )}
+
+      {isLoading || !prefs ? (
+        <p className="text-sm text-gray-500">Loading preferences…</p>
+      ) : (
+        <div className="space-y-3">
+          {rows.map(row => {
+            const checked = Boolean(
+              prefs[row.key as keyof typeof prefs] as unknown as boolean
+            );
+            return (
+              <label
+                key={row.key}
+                className="flex items-start justify-between p-3 rounded-md border border-gray-200 hover:bg-gray-50"
+              >
+                <span>
+                  <span className="block text-sm font-medium text-gray-900">
+                    {row.label}
+                  </span>
+                  <span className="block text-xs text-gray-500">
+                    {row.description}
+                  </span>
+                </span>
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4 rounded text-blue-600"
+                  checked={checked}
+                  disabled={updatePrefs.isPending}
+                  onChange={e => toggle(row.key, e.target.checked)}
+                />
+              </label>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// AUDIT LOG TAB
+// ============================================================================
+function AuditTab() {
+  const { data: auditLog } = trpc.settings.getAuditLog.useQuery({ limit: 50 });
+
+  return (
+    <div className="space-y-2">
+      <h3 className="text-lg font-medium text-gray-900">Activity</h3>
+      <p className="text-sm text-gray-500">
+        Recent security-related events on your account.
+      </p>
+      <div className="mt-4 space-y-2">
+        {!auditLog?.logs || auditLog.logs.length === 0 ? (
+          <p className="text-sm text-gray-500">No recent activity</p>
+        ) : (
+          auditLog.logs.map(
+            (log: {
+              id: string;
+              action: string;
+              ipAddress?: string | null;
+              createdAt: string | Date;
+            }) => (
+              <div
+                key={log.id}
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-md text-sm"
+              >
+                <div>
+                  <span className="font-medium text-gray-900">
+                    {log.action
+                      .replace(/_/g, " ")
+                      .replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                  </span>
+                  {log.ipAddress && (
+                    <span className="text-gray-500 ml-2">
+                      from {log.ipAddress}
+                    </span>
+                  )}
+                </div>
+                <span className="text-gray-500">
+                  {new Date(log.createdAt).toLocaleString()}
+                </span>
+              </div>
+            )
+          )
+        )}
       </div>
     </div>
   );
@@ -352,8 +529,8 @@ function DangerZoneTab() {
               (log: {
                 id: string;
                 action: string;
-                ipAddress?: string;
-                createdAt: string;
+                ipAddress?: string | null;
+                createdAt: string | Date;
               }) => (
                 <div
                   key={log.id}
@@ -543,6 +720,7 @@ function SettingsContent() {
               {activeTab === "security" && <SecurityTab />}
               {activeTab === "notifications" && <NotificationsTab />}
               {activeTab === "danger" && <DangerZoneTab />}
+              {activeTab === "audit" && <AuditTab />}
             </div>
           </div>
         </div>

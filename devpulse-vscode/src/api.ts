@@ -225,5 +225,5 @@ export class DevPulseApi {
 export function getConfiguredBaseUrl(): string {
   return vscode.workspace
     .getConfiguration("devpulse")
-    .get<string>("apiUrl", "https://api.devpluse.in");
+    .get<string>("apiUrl", "https://api.devpulse.app");
 }
